@@ -32,4 +32,5 @@ build/
 ### VS Code ###
 .vscode/
 
+## firebase ###
 src/main/resources/firebase-adminsdk.json

@@ -26,7 +26,8 @@ public class ChatController {
     private final UserService userService;
     private final PropertyService propertyService;
 
-    public ChatController(ChatService chatService, UserContext userContext, UserService userService, PropertyService propertyService) {
+    public ChatController(ChatService chatService, UserContext userContext, UserService userService,
+            PropertyService propertyService) {
         this.chatService = chatService;
         this.userContext = userContext;
         this.userService = userService;
@@ -109,13 +110,15 @@ public class ChatController {
                 .anyMatch(msg -> msg.startsWith("User " + receiverId + ":"));
 
         if (!receiverReplied) {
-            fullChatHistory.append("User ").append(receiverId != null ? receiverId : "null").append(": No response yet.\n");
+            fullChatHistory.append("User ").append(receiverId != null ? receiverId : "null")
+                    .append(": No response yet.\n");
         }
 
         return ResponseEntity.ok(fullChatHistory.toString().trim());
     }
 
-    // Fetch all messages from a conversation - Only Admin or User with chat_view authority
+    // Fetch all messages from a conversation - Only Admin or User with chat_view
+    // authority
     @GetMapping("/messages/{id}")
     @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('chat_view')) or (hasRole('ROLE_USER') and hasAuthority('chat_view'))")
     public ResponseEntity<List<String>> getMessages(@PathVariable Long id, HttpServletRequest request) {

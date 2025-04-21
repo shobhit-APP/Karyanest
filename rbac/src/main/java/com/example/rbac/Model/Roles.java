@@ -26,4 +26,9 @@ public class Roles {
 
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<RolesPermission> rolePermissions;
+
+    public Roles(String name, String description) {
+        this.name = name;
+        this.description = description;
+    }
 }
