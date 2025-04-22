@@ -7,8 +7,8 @@
     <groupId>com.example</groupId>
     <artifactId>parent-project</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>jar</packaging>
-
+    <packaging>pom</packaging>
+         
     <modules>
         <module>module-b</module>
         <module>Authentication</module>
