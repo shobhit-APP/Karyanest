@@ -16,19 +16,19 @@ public class PermissionsService {
 
     // ✅ Create a new routes
     @Transactional
-    public Permissions createRoute(Permissions permissions) {
+    public Permissions createPermission(Permissions permissions) {
         return permissionsRepository.save(permissions);
     }
 
     // ✅ Retrieve all routes
     @Transactional(readOnly = true)
-    public List<Permissions> getAllRoutes() {
+    public List<Permissions> getAllPermissions() {
         return permissionsRepository.findAll();
     }
 
     // ✅ Retrieve route by ID
     @Transactional(readOnly = true)
-    public Permissions getRouteById(Long id) {
+    public Permissions getaPermissionById(Long id) {
         return permissionsRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Routes not found for this ID: " + id));
     }
@@ -41,8 +41,8 @@ public class PermissionsService {
 
     // ✅ Update route
     @Transactional
-    public Permissions updateRoute(Long id, Permissions permissionsDetails) {
-        Permissions permissions = getRouteById(id); // Ensuring the routes exists
+    public Permissions updatePermission(Long id, Permissions permissionsDetails) {
+        Permissions permissions = getaPermissionById(id);
         permissions.setName(permissionsDetails.getName());
         permissions.setPermission(permissionsDetails.getPermission());
         return permissionsRepository.save(permissions);
@@ -50,8 +50,8 @@ public class PermissionsService {
 
     // ✅ Delete route
     @Transactional
-    public void deleteRoute(Long id) {
-        Permissions permissions = getRouteById(id); // Ensuring the routes exists
+    public void deletePermission(Long id) {
+        Permissions permissions = getaPermissionById(id);
         permissionsRepository.delete(permissions);
     }
 }

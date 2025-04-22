@@ -28,7 +28,7 @@ public class RolesController {
     private AssignPermissionsService assignPermissionsService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') and hasAuthority('roles_get')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('roles_get')")
     public ResponseEntity<Map<String, List<String>>> getAllRoles() {
         List<Roles> roles = roleService.getAllRoles();
         List<String> roleNames = roles.stream()
@@ -38,7 +38,7 @@ public class RolesController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') and hasAuthority('roles_create')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('roles_create')")
     public ResponseEntity<Map<String, String>> createRole(@RequestBody Map<String, Object> requestBody) {
         Map<String, String> response = new HashMap<>();
         String roleName = (String) requestBody.get("name");
@@ -62,9 +62,10 @@ public class RolesController {
     }
 
     @PostMapping("/permission")
-    @PreAuthorize("hasRole('ROLE_ADMIN') and hasAuthority('assgin_permssion_to_role')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('assignPermissionToRole')")
     public ResponseEntity<Map<String, Object>> assignPermissionToRole(@RequestBody AssignPermissionRequestDTO request) {
-        assignPermissionsService.assignPermissionToRole(request.getRoleId(), request.getPermission());
+        assignPermissionsService.assignPermissionToRole(request.getRoleId(), request.getPermissionIds());
         return ResponseEntity.ok(Map.of("message", "Permission assigned to role successfully"));
     }
+
 }

@@ -22,21 +22,21 @@ public class PropertyFavoriteController {
 
     // Endpoint for adding favorites
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT') or (hasRole('ROLE_USER') and hasAuthority('favorites'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('favorites_create')")
     public ResponseEntity<PropertyFavoriteResponseDTO> addFavorite(@RequestBody PropertyFavoriteRequestDTO request) {
         return new ResponseEntity<>(propertyFavoriteService.addFavorite(request), HttpStatus.CREATED);
     }
 
     // Endpoint for getting user favorites
     @GetMapping("/user/{id}")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT') or (hasRole('ROLE_USER') and hasAuthority('favorites_addByUser'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('favorites_get')")
     public ResponseEntity<List<PropertyDTO>> getUserFavorites(@PathVariable Long id) {
         return ResponseEntity.ok(propertyFavoriteService.getUserFavorites(id));
     }
 
     // Endpoint for removing favorites
     @DeleteMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasRole('ROLE_AGENT') or (hasRole('ROLE_USER') and hasAuthority('favorites'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('favorites_delete')")
     public ResponseEntity<Void> removeFavorite(@RequestBody PropertyFavoriteRequestDTO request) {
         propertyFavoriteService.removeFavorite(request.getUserId(), request.getPropertyId());
         return ResponseEntity.noContent().build();

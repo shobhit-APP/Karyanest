@@ -49,7 +49,7 @@ public class LeadNoteController {
 
     @Operation(summary = "Get notes by lead ID", description = "Retrieve all notes for a specific lead")
     @GetMapping("/note/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('leadNote_getNoteByID')) or hasRole('ROLE_AGENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_AGENT') or hasAuthority('leadNote_getNoteByLeadID')")
     public ResponseEntity<List<LeadNoteResponseDTO>> getNotesByLeadId(@PathVariable("leadId") Long leadId) {
         try {
             List<LeadNote> notes = leadNoteService.getAllNotesByleadId(leadId);
@@ -64,7 +64,7 @@ public class LeadNoteController {
 
     @Operation(summary = "Get lead note by note ID", description = "Retrieve a specific lead note by its ID")
     @GetMapping("/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('leadNote_manageByLeadID')) or hasRole('ROLE_AGENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_AGENT') or hasAuthority('leadNote_getLeadNoteByID)")
     public ResponseEntity<LeadNoteResponseDTO> getLeadNoteById(@PathVariable("id") Long noteId) {
         try {
             Optional<LeadNote> note = leadNoteService.getLeadNoteById(noteId);
@@ -80,7 +80,7 @@ public class LeadNoteController {
 
 
     @PostMapping("/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('leadNote_manageByLeadID')) or hasRole('ROLE_AGENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('leadNote_add')")
     public ResponseEntity<?> addLeadNote(
             @PathVariable Long id,
             @Valid @RequestBody MultipleNoteDtos multipleNoteDtos,
@@ -130,7 +130,7 @@ public class LeadNoteController {
     }
     @Operation(summary = "Update lead note", description = "Update an existing lead note by its ID")
     @PutMapping("/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('leadNote_manageByLeadID')) or hasRole('ROLE_AGENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('leadNote_update')")
     public ResponseEntity<LeadNoteResponseDTO> updateLeadNote(
             @PathVariable("id") Long id,
             @Valid @RequestBody LeadNoteDTO leadNoteDTO) {
@@ -159,7 +159,7 @@ public class LeadNoteController {
     }
     @Operation(summary = "Delete lead note", description = "Delete a lead note by its ID")
     @DeleteMapping("/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('leadNote_manageByLeadID'))")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leadNote_delete)")
     public ResponseEntity<String> deleteLeadNote(@PathVariable("id") Long noteId) {
         try {
             // Check if the note exists
