@@ -36,7 +36,7 @@ public class ChatController {
 
     // Start a chat - Only Admin or User with chat_start authority
     @PostMapping("/start")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('chat_start')) or (hasRole('ROLE_USER') and hasAuthority('chat_start'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_start')")
     public ResponseEntity<?> startChat(@RequestBody ChatRequest chatRequest, HttpServletRequest request) {
         Long userId = getUserId(request);
         String role = getUserRole(request);
@@ -58,7 +58,7 @@ public class ChatController {
 
     // Send message - Only Admin or User with chat_send authority
     @PostMapping("/send")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('chat_send')) or (hasRole('ROLE_USER') and hasAuthority('chat_send'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_send')")
     public ResponseEntity<?> sendMessage(@RequestBody MessageRequest messageRequest, HttpServletRequest request) {
         Long userId = getUserId(request);
         String role = getUserRole(request);
@@ -120,7 +120,7 @@ public class ChatController {
     // Fetch all messages from a conversation - Only Admin or User with chat_view
     // authority
     @GetMapping("/messages/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('chat_view')) or (hasRole('ROLE_USER') and hasAuthority('chat_view'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_view')")
     public ResponseEntity<List<String>> getMessages(@PathVariable Long id, HttpServletRequest request) {
         Long userId = getUserId(request);
 
@@ -134,7 +134,7 @@ public class ChatController {
 
     // Close a chat - Only Admin or Owner can close
     @PostMapping("/close/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('chat_close')) or (hasRole('ROLE_USER') and hasAuthority('chat_close'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_close')")
     public ResponseEntity<?> closeChat(@PathVariable Long id, HttpServletRequest request) {
         String role = getUserRole(request);
 

@@ -50,7 +50,7 @@ public class AccountController {
      * @return ResponseEntity with a list of all users
      */
     @Operation(summary = "Get all users", description = "Retrieve a list of all registered users")
-    @PreAuthorize("hasRole('ROLE_ADMIN') and hasAuthority('users_getAll'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('users_getAll')")
     @GetMapping
     public ResponseEntity<List<UserResponseDTO>> getAllUsers() {
         List<UserResponseDTO> users = userService.getAllUsers();
@@ -65,12 +65,12 @@ public class AccountController {
      */
     @Operation(summary = "Get user by ID", description = "Retrieve user details by user ID")
     @GetMapping("{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN')) or (hasRole('ROLE_USER') and hasAuthority('users_getByID')) or (hasRole('ROLE_AGENT') and hasAuthority('users_getByID'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_getByID')")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long id) {
        UserResponseDTO user = userService.getUserById(id);
         return ResponseEntity.ok(user);
     }
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasRole('ROLE_USER') or (hasRole('ROLE_AGENT') and hasAuthority('users_getDetail')))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_getCurrent')")
     @GetMapping("/currentUser")
     public ResponseEntity<?> getUserDetails(HttpServletRequest request) {
         String username = userContext.getUsername(request);
@@ -129,7 +129,7 @@ public class AccountController {
      * @return ResponseEntity with updated user details
      */
     @Operation(summary = "Update user details", description = "Update details of an existing user by user ID")
-    @PreAuthorize("(hasRole('ROLE_ADMIN')) or (hasRole('ROLE_USER') and hasAuthority('users_getByID')) or (hasRole('ROLE_AGENT') and hasAuthority('users_getByID'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_update')")
     @PutMapping("{id}")
     public ResponseEntity<UserRegistrationDTO> updateUser(
             @PathVariable Long id,
@@ -164,7 +164,7 @@ public class AccountController {
      * @return ResponseEntity with a deactivation message
      */
     @Operation(summary = "Delete (deactivate) user by ID", description = "Deactivate a user by user ID")
-    @PreAuthorize("(hasRole('ROLE_ADMIN')) or (hasRole('ROLE_USER') and hasAuthority('users_getByID')) or (hasRole('ROLE_AGENT') and hasAuthority('users_getByID'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_delete')")
     @DeleteMapping("{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         User user = userService.findById(id);
@@ -185,7 +185,7 @@ public class AccountController {
      * @return ResponseEntity containing a success message or updated user data, or an error message if the request fails.
      */
     @Operation(summary = "Activate user or update preferences", description = "Activate a previously deactivated user by ID or update user preferences.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN')) or (hasRole('ROLE_USER') and hasAuthority('users_getByID')) or (hasRole('ROLE_AGENT') and hasAuthority('users_getByID'))")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_activate')")
     @PatchMapping("/{id}")
     public ResponseEntity<?> activateUser(
             @PathVariable Long id,

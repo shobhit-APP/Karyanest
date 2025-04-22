@@ -32,9 +32,9 @@ public class PermissionController {
     private PermissionsService permissionsService;
 
     @PostMapping
-    @PreAuthorize("hasRole('ROLE_ADMIN') and hasAuthority('create_permission')")
-    public ResponseEntity<Map<String, Object>> createRoutes(@RequestBody Permissions permissions) {
-        Permissions createdPermissions = permissionsService.createRoute(permissions);
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('create_permission')")
+    public ResponseEntity<Map<String, Object>> createPermission(@RequestBody Permissions permissions) {
+        Permissions createdPermissions = permissionsService.createPermission(permissions);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("message", "Routes Created Successfully", "routes", createdPermissions));
     }

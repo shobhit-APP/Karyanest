@@ -26,7 +26,7 @@ public class FAQController {
 
     // Get all FAQs - Admin, User, or Agent can access this
     @GetMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('faqs_view_all')) or hasRole('ROLE_USER') or hasRole('ROLE_AGENT')")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('faqs_view_all')")
     public ResponseEntity<List<FAQResponseDTO>> getAll() {
         return ResponseEntity.ok(faqService.getAllFAQs());
     }

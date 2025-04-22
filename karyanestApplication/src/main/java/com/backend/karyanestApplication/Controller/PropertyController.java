@@ -54,7 +54,7 @@ public class PropertyController {
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing a list of PropertyDTO objects
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('props_createOrList')) or (hasRole('ROLE_USER') and hasAuthority('props_createOrList')) or (hasRole('ROLE_AGENT') and hasAuthority('props_createOrList'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_createOrList')")
     @GetMapping
     public ResponseEntity<List<PropertyDTO>> getAllProperties(HttpServletRequest request) {
         List<PropertyDTO> properties = propertyService.getAllProperties();
@@ -70,7 +70,7 @@ public class PropertyController {
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing the PropertyDTO for the specified ID
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('props_getById'))")
+  @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getById')")
     @GetMapping("/{id}")
     public ResponseEntity<PropertyDTO> getPropertyById(@PathVariable Long id, HttpServletRequest request) {
         // Get the property details
@@ -88,7 +88,7 @@ public class PropertyController {
      * @param request The HTTP request containing the JWT token
      * @return ResponseEntity containing the created PropertyDTO with HTTP status 201 (Created)
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('props_createOrList')) or (hasRole('ROLE_USER') and hasAuthority('props_createOrList')) or (hasRole('ROLE_AGENT') and hasAuthority('props_createOrList'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_createOrList')")
     @PostMapping
     public ResponseEntity<PropertyDTO> addProperty(
             @RequestBody PropertyDTO propertyDTO,
@@ -106,7 +106,7 @@ public class PropertyController {
      * @param propertyDTO The property data transfer object containing updated details
      * @return ResponseEntity containing the updated PropertyDTO
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('props_getById')) or (hasRole('ROLE_USER') and hasAuthority('props_getById')) or (hasRole('ROLE_AGENT') and hasAuthority('props_getById'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getById')")
     @PutMapping("/{id}")
     public ResponseEntity<PropertyDTO> updateProperty(
             @PathVariable Long id,
@@ -121,7 +121,7 @@ public class PropertyController {
      * @param propertyResourceDTO The resource details to add
      * @return ResponseEntity containing the created PropertyResourceDTO
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('props_addOrUpdateResource')) or (hasRole('ROLE_USER') and hasAuthority('props_addOrUpdateResource')) or (hasRole('ROLE_AGENT') and hasAuthority('props_addOrUpdateResource'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addResource')")
     @PostMapping("/resources/{id}")
     public ResponseEntity<PropertyResourceDTO> addPropertyResource(@PathVariable Long id, @RequestBody PropertyResourceDTO propertyResourceDTO) {
         return ResponseEntity.ok(propertyService.addPropertyResource(id, propertyResourceDTO));
@@ -136,6 +136,7 @@ public class PropertyController {
      * @return ResponseEntity containing the updated PropertyResourceDTO
      */
     @PutMapping("/resources/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_UpdateResource')")
     public ResponseEntity<PropertyResourceDTO> updatePropertyResource(@PathVariable Long id, @RequestParam Long resourcesId, @RequestBody PropertyResourceDTO propertyResourceDTO) {
         return ResponseEntity.ok(propertyService.updateOrCreatePropertyResource(id, resourcesId, propertyResourceDTO));
     }
@@ -146,7 +147,7 @@ public class PropertyController {
      * @param id The ID of the property to delete
      * @return ResponseEntity containing a success message
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('inquiries_create')) or (hasRole('ROLE_USER') and hasAuthority('inquiries_create')) or (hasRole('ROLE_AGENT') and hasAuthority('inquiries_create'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_deleteProps')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteProperty(@PathVariable Long id) {
         propertyService.deleteById(id);
@@ -164,7 +165,7 @@ public class PropertyController {
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing a list of PropertyDTO objects
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('props_getById')) or (hasRole('ROLE_USER') and hasAuthority('props_getById')) or (hasRole('ROLE_AGENT') and hasAuthority('props_getById'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getById')")
     @GetMapping("/user/{id}")
     public ResponseEntity<List<PropertyDTO>> getPropertiesByUserId(@PathVariable Long id, HttpServletRequest request) {
         List<PropertyDTO> properties = propertyService.getPropertiesByUserId(id);
@@ -180,7 +181,7 @@ public class PropertyController {
      * @param request The HTTP request containing the JWT token
      * @return ResponseEntity containing a list of PropertyDTO objects or an error message
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_currentUser')) or (hasRole('ROLE_USER') and hasAuthority('property_currentUser')) or (hasRole('ROLE_AGENT') and hasAuthority('property_currentUser'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_currentUser')")
     @GetMapping("/currentUserProperty")
     public ResponseEntity<?> getAllProps(HttpServletRequest request) {
        
@@ -210,7 +211,7 @@ public class PropertyController {
      * @param id The ID of the property to get visits for
      * @return ResponseEntity containing a list of UserPropertyVisit objects or an error message
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_visitByID'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('property_visitByID')")
     @GetMapping("/visits/{id}")
     public ResponseEntity<?> getPropertyVisits(@PathVariable Long id) {
         try {
@@ -231,7 +232,7 @@ public class PropertyController {
      * @param id The ID of the property to get visit statistics for
      * @return ResponseEntity containing visit statistics or an error message
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_visitCount'))")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('property_visitCount')")
     @GetMapping("/visits_count/{id}")
     public ResponseEntity<?> getPropertyVisitCount(@PathVariable Long id) {
         try {
@@ -300,7 +301,7 @@ public class PropertyController {
      * @param request The HTTP request containing the JWT token
      * @return ResponseEntity containing the updated PropertyDTO or an error message
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_changePrice')) or (hasRole('ROLE_USER') and hasAuthority('property_changePrice')) or (hasRole('ROLE_AGENT') and hasAuthority('property_changePrice'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('property_changePrice')")
     @PatchMapping("/ChangePrice/{id}")
     public ResponseEntity<?> updatePrice(@PathVariable Long id, @RequestBody Map<String, BigDecimal> priceMap, HttpServletRequest request) {
         try {
@@ -345,7 +346,7 @@ public class PropertyController {
      *
      * @return ResponseEntity containing a list of price change records
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_priceHistory')) or (hasRole('ROLE_USER') and hasAuthority('property_priceHistory')) or (hasRole('ROLE_AGENT') and hasAuthority('property_priceHistory'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('property_priceHistory')")
     @GetMapping("/price_history")
     public ResponseEntity<List<Map<String, Object>>> priceChangeHistory() {
         try {
@@ -383,7 +384,7 @@ public class PropertyController {
      * @param request The HTTP request
      * @return ResponseEntity containing the price change record or null if not found
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_priceHistoryByID')) or (hasRole('ROLE_USER') and hasAuthority('property_priceHistoryByID')) or (hasRole('ROLE_AGENT') and hasAuthority('property_priceHistoryByID'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('property_priceHistoryByID')")
     @GetMapping("/price_history/{id}")
     public ResponseEntity<Map<String, Object>> priceChangeHistoryById(@PathVariable Long id, HttpServletRequest request) {
         try {
@@ -412,7 +413,7 @@ public class PropertyController {
      * @param searchRequest The search criteria DTO containing filter parameters
      * @return ResponseEntity containing a list of PropertyDTO objects matching the search criteria
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('property_search')) or (hasRole('ROLE_USER') and hasAuthority('property_search')) or (hasRole('ROLE_AGENT') and hasAuthority('property_search'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('property_search')")
     @PostMapping("/search")
     public ResponseEntity<List<PropertyDTO>> searchProperties(@RequestBody PropertySearchRequestDTO searchRequest) {
         List<PropertyDTO> properties = propertyService.searchProperties(searchRequest);

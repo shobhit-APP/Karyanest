@@ -26,7 +26,7 @@ public class TermsAndConditionsController {
 
     // Get All Terms - Admin, User, and Agent can view
     @GetMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('terms')) or (hasRole('ROLE_USER') and hasAuthority('terms_view')) or (hasRole('ROLE_AGENT') and hasAuthority('terms_view'))")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('terms_view')")
     public ResponseEntity<List<TermsAndConditionsResponseDTO>> getAllTerms() {
         return ResponseEntity.ok(service.getAllTerms());
     }
