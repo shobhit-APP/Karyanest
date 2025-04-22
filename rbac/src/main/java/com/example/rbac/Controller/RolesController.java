@@ -61,11 +61,15 @@ public class RolesController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Assigns a permission to a role. Only accessible to users with ROLE_ADMIN role and assign_permission_to_role authority.
+     * @param request DTO containing roleId and permission
+     * @return ResponseEntity with success message
+     */
     @PostMapping("/permission")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('assignPermissionToRole')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('assign_PermissionToRole')")
     public ResponseEntity<Map<String, Object>> assignPermissionToRole(@RequestBody AssignPermissionRequestDTO request) {
         assignPermissionsService.assignPermissionToRole(request.getRoleId(), request.getPermissionIds());
         return ResponseEntity.ok(Map.of("message", "Permission assigned to role successfully"));
     }
-
 }

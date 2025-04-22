@@ -32,10 +32,21 @@ public class PermissionScanner {
 
     @Autowired
     private RolesRepository rolesRepository;
+    static class PermissionInfo {
+        String permission;
+        String url;
+        String method;
+
+        PermissionInfo(String permission, String url, String method) {
+            this.permission = permission;
+            this.url = url;
+            this.method = method;
+        }
+    }
 
     @PostConstruct
     public void scanPermissions() {
-        Set<String> permissionSet = new HashSet<>();
+        Set<PermissionInfo> permissionInfo = new HashSet<>();
         Set<String> roleSet = new HashSet<>();
         Map<String, Object> controllers = applicationContext.getBeansWithAnnotation(RestController.class);
 
@@ -45,13 +56,43 @@ public class PermissionScanner {
         for (Object controller : controllers.values()) {
             Class<?> clazz = AopUtils.getTargetClass(controller); // Handles Spring proxies
 
+            String basePath = "";
+            if (clazz.isAnnotationPresent(RequestMapping.class)) {
+                RequestMapping baseMapping = clazz.getAnnotation(RequestMapping.class);
+                if (baseMapping.value().length > 0) {
+                    basePath = baseMapping.value()[0];
+                }
+            }
+
             for (Method method : clazz.getDeclaredMethods()) {
+                String fullPath = basePath;
+                String httpMethod = "UNKNOWN";
+
+                if (method.isAnnotationPresent(GetMapping.class)) {
+                    GetMapping mapping = method.getAnnotation(GetMapping.class);
+                    fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
+                    httpMethod = "GET";
+                } else if (method.isAnnotationPresent(PostMapping.class)) {
+                    PostMapping mapping = method.getAnnotation(PostMapping.class);
+                    fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
+                    httpMethod = "POST";
+                } else if (method.isAnnotationPresent(PutMapping.class)) {
+                    PutMapping mapping = method.getAnnotation(PutMapping.class);
+                    fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
+                    httpMethod = "PUT";
+                } else if (method.isAnnotationPresent(DeleteMapping.class)) {
+                    DeleteMapping mapping = method.getAnnotation(DeleteMapping.class);
+                    fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
+                    httpMethod = "DELETE";
+                }
+
                 if (method.isAnnotationPresent(PreAuthorize.class)) {
                     String preAuthValue = method.getAnnotation(PreAuthorize.class).value();
 
                     Matcher authMatcher = authorityPattern.matcher(preAuthValue);
                     while (authMatcher.find()) {
-                        permissionSet.add(authMatcher.group(1));
+                        String permission = authMatcher.group(1);
+                        permissionInfo.add(new PermissionInfo(permission, fullPath, httpMethod));
                     }
 
                     Matcher roleMatcher = rolePattern.matcher(preAuthValue);
@@ -63,30 +104,31 @@ public class PermissionScanner {
         }
 
         // Fetch all existing permissions in one query
+
         List<Permissions> existingPermissions = permissionsRepository.findAll();
         Set<String> existingPermissionValues = existingPermissions.stream()
                 .map(Permissions::getPermission)
                 .collect(Collectors.toSet());
+
         // Fetch all existing roles in one query
+
         List<Roles> existingRoles = rolesRepository.findAll();
         Set<String> existingRoleValues = existingRoles.stream()
                 .map(Roles::getName)
                 .collect(Collectors.toSet());
 
         // Filter only new ones
-        List<Permissions> newPermissions = permissionSet.stream()
-                .filter(p -> !existingPermissionValues.contains(p))
+        List<Permissions> newPermissions = permissionInfo.stream()
+                .filter(p -> !existingPermissionValues.contains(p.permission))
                 .map(p -> {
                     Permissions permission = new Permissions();
+                    permission.setPermission(p.permission);
 
-                    permission.setPermission(p);
-
-                    // Generate a friendly name from the permission string
-                    String[] parts = p.split("_");
+                    // Generate name from permission string
+                    String[] parts = p.permission.split("_");
                     StringBuilder nameBuilder = new StringBuilder();
 
                     if (parts.length > 1) {
-                        // e.g., "roles_create" → "Create new roles"
                         switch (parts[1].toLowerCase()) {
                             case "create":
                                 nameBuilder.append("Create new ");
@@ -106,10 +148,11 @@ public class PermissionScanner {
                         }
                         nameBuilder.append(parts[0].replace("_", " "));
                     } else {
-                        nameBuilder.append(capitalize(p.replace("_", " ")));
+                        nameBuilder.append(capitalize(p.permission.replace("_", " ")));
                     }
 
                     permission.setName(nameBuilder.toString().trim());
+                    permission.setDescription("URL: " + p.url + ", Method: " + p.method + ", Authority: " + p.permission );
 
                     return permission;
                 })
