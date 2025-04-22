@@ -54,7 +54,7 @@ public class PropertyController {
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing a list of PropertyDTO objects
      */
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_createOrList')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getAll')")
     @GetMapping
     public ResponseEntity<List<PropertyDTO>> getAllProperties(HttpServletRequest request) {
         List<PropertyDTO> properties = propertyService.getAllProperties();
@@ -88,7 +88,7 @@ public class PropertyController {
      * @param request The HTTP request containing the JWT token
      * @return ResponseEntity containing the created PropertyDTO with HTTP status 201 (Created)
      */
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_createOrList')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_create')")
     @PostMapping
     public ResponseEntity<PropertyDTO> addProperty(
             @RequestBody PropertyDTO propertyDTO,
@@ -165,7 +165,7 @@ public class PropertyController {
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing a list of PropertyDTO objects
      */
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getById')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getByUserId')")
     @GetMapping("/user/{id}")
     public ResponseEntity<List<PropertyDTO>> getPropertiesByUserId(@PathVariable Long id, HttpServletRequest request) {
         List<PropertyDTO> properties = propertyService.getPropertiesByUserId(id);
