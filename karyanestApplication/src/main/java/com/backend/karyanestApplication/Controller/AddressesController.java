@@ -79,7 +79,7 @@ public class AddressesController {
     }
 
     @Operation(summary = "Update Address", description = "Updates an existing address based on ID.")
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('address_manage')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('address_update')")
     @PutMapping("/{id}")
     public ResponseEntity<Addresses> updateAddress(@PathVariable Long id, @RequestBody Addresses newAddress) {
         Optional<Addresses> updatedAddress = addressesService.updateAddress(id, newAddress);
