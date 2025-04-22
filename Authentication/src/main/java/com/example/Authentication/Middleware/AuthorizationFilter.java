@@ -69,7 +69,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 
             // Add permissions
             List<GrantedAuthority> authorities = new ArrayList<>(encryptedPermissions.stream()
-                    .map(MyEncryptionUtil::decrypt)
+//                    .map(MyEncryptionUtil::decrypt)
                     .map(SimpleGrantedAuthority::new)
                     .toList());
 
