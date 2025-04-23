@@ -247,12 +247,12 @@ public class AuthController {
         String resetMethod = requestBody.get("resetMethod"); // "email" or "phone"
 
         // Validate that at least one identifier is provided
-        if(auth.ValidateIdentifier(username,phoneNumber,email))
+        if(!auth.ValidateIdentifier(username,phoneNumber,email))
         {
             return ResponseEntity.badRequest().body(Map.of("error", "Username, email, or phone number is required"));
         }
         // Validate reset method
-        if(auth.Validate(resetMethod))
+        if(!auth.Validate(resetMethod))
         {
             return ResponseEntity.badRequest().body(Map.of("error", "Valid reset method (email or phone) is required"));
         }

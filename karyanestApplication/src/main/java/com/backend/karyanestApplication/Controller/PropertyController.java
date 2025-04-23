@@ -70,7 +70,7 @@ public class PropertyController {
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing the PropertyDTO for the specified ID
      */
-  @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getById')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getById')")
     @GetMapping("/{id}")
     public ResponseEntity<PropertyDTO> getPropertyById(@PathVariable Long id, HttpServletRequest request) {
         // Get the property details
