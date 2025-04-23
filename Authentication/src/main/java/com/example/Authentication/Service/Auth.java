@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Service
 public class Auth implements AuthService, AuthHelper {
     // Configuration constants
-    private static final String VERIFICATION_LINK_TEMPLATE = "http://karynest-real-state.azurewebsites.net/v1/auth/verify?email=";
+    private static final String VERIFICATION_LINK_TEMPLATE = "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/auth/verify?email=";
 
     // Dependencies
     private final AuthenticationManager authenticationManager;
@@ -181,7 +181,7 @@ public class Auth implements AuthService, AuthHelper {
         if (user == null) {
             throw new CustomException("User not found with phone number:" + Phone);
         }
-        return handelPhoneVerification(Phone, "http://karynest-real-state.azurewebsites.net/v1/auth/verify-otp");
+        return handelPhoneVerification(Phone, "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/auth/verify-otp");
     }
 
     @Override
@@ -280,12 +280,12 @@ public class Auth implements AuthService, AuthHelper {
             String otp = generateAndStoreOtp(user.getPhoneNumber());
             // Here you would integrate with SMS service to send the OTP
             verificationType = "SMS";
-            verificationUrl = "http://karynest-real-state.azurewebsites.net/v1/verify-user-otp";
+            verificationUrl = "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/verify-user-otp";
         } else {
             // Email verification scenario
             String token = GenerateToken(user.getUserId(), user.getEmail());
             verificationType = "email";
-            verificationUrl = "http://karynest-real-state.azurewebsites.net/v1/verify?email=" +
+            verificationUrl = "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/verify?email=" +
                     user.getEmail() + "&token=" + token;
         }
 
@@ -444,7 +444,7 @@ public class Auth implements AuthService, AuthHelper {
     }
 
     public UserDTO getUserDetails(String key, String value) {
-        String url = "http://localhost:8080/internal/user?" + key + "=" + value;
+        String url = "http://webapp-2y66rs5uhebeg.azurewebsites.net/internal/user?" + key + "=" + value;
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Request", "true");
@@ -462,7 +462,7 @@ public class Auth implements AuthService, AuthHelper {
     }
 
     public void setUserDetailsInternally(UpdateUserInternalDTO updateDto) {
-        String url = "http://localhost:8080/internal/user/internal-update";
+        String url = "http://webapp-2y66rs5uhebeg.azurewebsites.net/internal/user/internal-update";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Internal-Request", "true");
