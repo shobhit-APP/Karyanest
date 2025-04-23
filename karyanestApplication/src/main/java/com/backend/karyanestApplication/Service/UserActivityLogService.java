@@ -1,6 +1,6 @@
 package com.backend.karyanestApplication.Service;
 
-import com.backend.karyanestApplication.DTO.JWTUserDTO;
+import com.example.Authentication.DTO.JWTUserDTO;
 import com.backend.karyanestApplication.DTO.UserActivityLogResponseDTO;
 import com.backend.karyanestApplication.Model.User;
 import com.backend.karyanestApplication.Model.UserActivityLog;

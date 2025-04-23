@@ -1,6 +1,5 @@
 package com.backend.karyanestApplication.Model;
 
-import com.backend.karyanestApplication.DTO.JWTUserDTO;
 import jakarta.persistence.*;
 import lombok.*;
 

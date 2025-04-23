@@ -1,6 +1,6 @@
 package com.backend.karyanestApplication.Controller;
 
-import com.backend.karyanestApplication.DTO.JWTUserDTO;
+import com.example.Authentication.DTO.JWTUserDTO;
 import com.backend.karyanestApplication.DTO.LeadNoteDTO;
 import com.backend.karyanestApplication.DTO.LeadNoteResponseDTO;
 import com.backend.karyanestApplication.DTO.MultipleNoteDtos;

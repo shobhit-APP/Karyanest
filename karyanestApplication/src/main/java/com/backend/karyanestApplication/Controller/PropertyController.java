@@ -1,6 +1,6 @@
 package com.backend.karyanestApplication.Controller;
 
-import com.backend.karyanestApplication.DTO.JWTUserDTO;
+import com.example.Authentication.DTO.JWTUserDTO;
 import com.backend.karyanestApplication.DTO.PropertyDTO;
 import com.backend.karyanestApplication.DTO.PropertyResourceDTO;
 import com.backend.karyanestApplication.DTO.PropertySearchRequestDTO;

@@ -1,6 +1,6 @@
 package com.backend.karyanestApplication.Service;
 
-import com.backend.karyanestApplication.DTO.JWTUserDTO;
+import com.example.Authentication.DTO.JWTUserDTO;
 import com.backend.karyanestApplication.Model.User;
 import com.backend.karyanestApplication.Model.UserNotification;
 import com.backend.karyanestApplication.Repositry.UserNotificationRepository;

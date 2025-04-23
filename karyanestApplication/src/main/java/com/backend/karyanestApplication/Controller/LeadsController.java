@@ -1,6 +1,7 @@
 package com.backend.karyanestApplication.Controller;
 
 import com.backend.karyanestApplication.DTO.*;
+import com.example.Authentication.DTO.JWTUserDTO;
 import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
 import com.example.Authentication.UTIL.JwtUtil;
 import com.backend.karyanestApplication.Model.Lead;
