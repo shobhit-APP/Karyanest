@@ -19,7 +19,7 @@ public class FAQController {
 
     // Create a new FAQ - Admin, User, or Agent with specific authority
     @PostMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN'))")
     public ResponseEntity<FAQResponseDTO> create(@RequestBody FAQRequestDTO requestDTO) {
         return new ResponseEntity<>(faqService.createFAQ(requestDTO), HttpStatus.CREATED);
     }

@@ -267,7 +267,7 @@ public class PropertyController {
      * @param request The HTTP request containing the JWT token
      * @return ResponseEntity containing the created UserPropertyVisit or an error message
      */
-    @PreAuthorize("(hasRole('ROLE_ADMIN')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN'))")
     @PostMapping("/record-visit/{id}")
     public ResponseEntity<?> manuallyRecordVisit(
             @PathVariable Long id,
