@@ -287,7 +287,7 @@ public class AuthController {
 //                // In a real system, you would generate a unique OTP for each reset request
 //                Map<String, String> otpMap = new HashMap<>();
 //                otpMap.put(user.getPhoneNumber(), otp);
-                return auth.handelPhoneVerification(user.getPhoneNumber(), "http://karynest-real-state.azurewebsites.net/v1/auth/verify-otp-for-reset");
+                return auth.handelPhoneVerification(user.getPhoneNumber(), "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/auth/verify-otp-for-reset");
 //                // In production, send real SMS with OTP
 //                smsService.sendOtp(user.getPhoneNumber(), otp);
             }
