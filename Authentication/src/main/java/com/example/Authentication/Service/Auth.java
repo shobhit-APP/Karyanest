@@ -208,8 +208,11 @@ public class Auth implements AuthService, AuthHelper {
         return !isNullOrEmpty(username) || !isNullOrEmpty(email) || !isNullOrEmpty(phoneNumber);
     }
 
-    public boolean Validate(String resetMethod) {
-        return isNullOrEmpty(resetMethod) || !resetMethod.equals("email") && !resetMethod.equals("phone");
+    public boolean validateResetMethod(String resetMethod) {
+        if (isNullOrEmpty(resetMethod)) {
+            return false; // fail if null or empty
+        }
+        return resetMethod.equals("email") || resetMethod.equals("phone");
     }
 
     public ResponseEntity<?> handleLoginRequest(String username, String phoneNumber, String email, String password) {

@@ -252,7 +252,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Username, email, or phone number is required"));
         }
         // Validate reset method
-        if(!auth.Validate(resetMethod))
+        if(!auth.validateResetMethod(resetMethod))
         {
             return ResponseEntity.badRequest().body(Map.of("error", "Valid reset method (email or phone) is required"));
         }
