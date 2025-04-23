@@ -9,6 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 		"com.example.rbac",
 		"com.example.module_b",
 		"com.example.Authentication"
+	        "com.example.karyanestApplication"
 })
 public class karyanestApplication {
 	public static void main(String[] args) {
