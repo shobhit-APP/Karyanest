@@ -12,6 +12,6 @@ import org.springframework.context.annotation.ComponentScan;
 })
 public class karyanestApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(KaryanestApplication.class, args);
+		SpringApplication.run(karyanestApplication.class, args);
 	}
 }
