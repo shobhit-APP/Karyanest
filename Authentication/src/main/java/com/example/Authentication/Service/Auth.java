@@ -3,6 +3,8 @@ import com.example.Authentication.DTO.AuthResponseDTO;
 import com.example.Authentication.DTO.UpdateUserInternalDTO;
 import com.example.Authentication.DTO.UserDTO;
 import com.example.Authentication.Model.PasswordResetToken;
+import com.example.Authentication.Model.UserInternalUpdateEntity;
+import com.example.Authentication.Repositery.UserInternalUpdateRepository;
 import com.example.Authentication.UTIL.JwtUtil;
 import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
 import com.example.Authentication.Repositery.PasswordResetTokenRepository;
@@ -44,6 +46,9 @@ public class Auth implements AuthService, AuthHelper {
     private final JwtUtil jwtUtil;
     private final ReferenceTokenService referenceTokenService;
     private final RolesPermissionRepository rolesPermissionRepository;
+    private final RedisService redisService;
+    @Autowired
+    private UserInternalUpdateRepository userInternalUpdateRepository;
 
     // In-memory OTP storage
     private final Map<String, String> otpStorage = new HashMap<>();
@@ -64,7 +69,7 @@ public class Auth implements AuthService, AuthHelper {
             RolesRepository roleRepository,
             JwtUtil jwtUtil,
             ReferenceTokenService referenceTokenService,
-            RolesPermissionRepository rolesPermissionRepository) {
+            RolesPermissionRepository rolesPermissionRepository, RedisService redisService) {
 
         this.authenticationManager = authenticationManager;
         this.restTemplate = restTemplate;
@@ -74,6 +79,7 @@ public class Auth implements AuthService, AuthHelper {
         this.jwtUtil = jwtUtil;
         this.referenceTokenService = referenceTokenService;
         this.rolesPermissionRepository = rolesPermissionRepository;
+        this.redisService = redisService;
     }
 
     @Override
@@ -229,6 +235,38 @@ public class Auth implements AuthService, AuthHelper {
             return ResponseEntity.badRequest().body(Map.of("error", "Username, email, or phone number is required"));
         }
 
+        // Handle blocked users
+        String input;
+        if (!isNullOrEmpty(username)) {
+            input = username;
+        } else if (!isNullOrEmpty(email)) {
+            input = email;
+        } else {
+            input = phoneNumber;
+        }
+
+        String key;
+        if (input.contains("@")) {
+            key = "email";
+        } else if (input.matches("\\d+")) {
+            key = "phonenumber";
+        } else {
+            key = "username";
+        }
+        UserDTO users = getUserDetails(key, input);
+        Long userId = users.getUserId();
+        boolean isInRedis = redisService.isUserBlocked(userId);
+        if (Objects.equals(users.getStatus(), "Blocked")) {
+            if (!isInRedis) {
+                redisService.addToBlockedUsers(userId); // Sync Redis with DB
+            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Your account is blocked. Please contact admin."));
+            }
+        if (isInRedis) {
+            redisService.removeFromBlockedUsers(userId);
+        }
+
         LoginMethod loginMethod = determineLoginMethod(username, email, phoneNumber);
         UserDTO user = authenticateUser(loginMethod, username, email, phoneNumber, password);
 
@@ -236,7 +274,6 @@ public class Auth implements AuthService, AuthHelper {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Your account has been deleted. Please contact support if you wish to restore it."));
         }
-
         if (Objects.equals(user.getVerificationStatus(), "Unverified")) {
             return notifyUser(user);
         }
@@ -447,40 +484,72 @@ public class Auth implements AuthService, AuthHelper {
     }
 
     public UserDTO getUserDetails(String key, String value) {
-        String url = "http://webapp-2y66rs5uhebeg.azurewebsites.net/internal/user?" + key + "=" + value;
+         UserInternalUpdateEntity user = null;
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Internal-Request", "true");
+        switch (key.toLowerCase()) {
+            case "username":
+                user = userInternalUpdateRepository.findByUsername(value);
+                break;
+            case "email":
+                user = userInternalUpdateRepository.findByEmail(value);
+                break;
+            case "phonenumber":
+                user = userInternalUpdateRepository.findByPhoneNumber(value);
+                break;
+            default:
+                throw new CustomException("Invalid key: " + key);
+        }
 
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+        if (user == null) {
+            throw new CustomException("User not found with " + key + ": " + value);
+        }
 
-        ResponseEntity<UserDTO> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                UserDTO.class
-        );
+        UserDTO userDTO = new UserDTO();
+        userDTO.setUserId(user.getUserId());
+        userDTO.setEmail(user.getEmail());
+        userDTO.setUsername(user.getUsername());
+        userDTO.setFullName(user.getFullName());
+        userDTO.setPassword(user.getPassword());
+        userDTO.setPhoneNumber(user.getPhoneNumber());
+        if (user.getRole() != null) {
+            userDTO.setRole(user.getRole().getName());
+            userDTO.setRoleId(user.getRole().getId());
+        }
+        if (user.getVerificationStatus() != null) {
+            userDTO.setVerificationStatus(user.getVerificationStatus().toString());
+        }
+        if (user.getVerificationMethod() != null) {
+            userDTO.setVerificationMethod(user.getVerificationMethod().toString());
+        }
+        if (user.getStatus() != null) {
+            userDTO.setStatus(user.getStatus().toString());
+        }
 
-        return response.getBody();
+        return userDTO;
     }
 
     public void setUserDetailsInternally(UpdateUserInternalDTO updateDto) {
-        String url = "http://webapp-2y66rs5uhebeg.azurewebsites.net/internal/user/internal-update";
+        Optional<UserInternalUpdateEntity> optionalUser = userInternalUpdateRepository.findById(updateDto.getUserId());
+        if (optionalUser.isPresent()) {
+            UserInternalUpdateEntity user = optionalUser.get();
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("X-Internal-Request", "true");
-        headers.setContentType(MediaType.APPLICATION_JSON);
+            if (updateDto.getStatus() != null) {
+                user.setStatus(UserInternalUpdateEntity.UserStatus.valueOf(updateDto.getStatus()));
+            }
+            if (updateDto.getNewPassword() != null) {
+                user.setPassword(updateDto.getNewPassword());
+            }
+            if (updateDto.getVerificationStatus() != null) {
+                user.setVerificationStatus(UserInternalUpdateEntity.VerificationStatus.valueOf(updateDto.getVerificationStatus()));
+            }
+            if (updateDto.getLastLogin() != null) {
+                user.setLastLogin(updateDto.getLastLogin());
+            }
 
-        HttpEntity<UpdateUserInternalDTO> entity = new HttpEntity<>(updateDto, headers);
-
-        ResponseEntity<String> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                String.class
-        );
-
-        response.getBody();
+            userInternalUpdateRepository.save(user);
+        } else {
+            throw new RuntimeException("User not found with ID: " + updateDto.getUserId());
+        }
     }
 
     /**
