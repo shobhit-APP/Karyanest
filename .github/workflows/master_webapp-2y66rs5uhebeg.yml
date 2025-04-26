@@ -70,11 +70,12 @@ jobs:
           script: |
             mkdir -p /root/app/
             scp -o StrictHostKeyChecking=no /tmp/*.jar root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no setup.sh root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no karyanest.service root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no nginx.conf root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no application.properties root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/setup.sh root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/karyanest.service root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/nginx.conf root@139.59.10.226:/root/app/
+            # Uncomment the following lines if application.properties and DigiCertGlobalRootG2.crt are needed
+            # scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/application.properties root@139.59.10.226:/root/app/
+            # scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
 
       - name: List files on droplet
         uses: appleboy/ssh-action@v0.0.7
