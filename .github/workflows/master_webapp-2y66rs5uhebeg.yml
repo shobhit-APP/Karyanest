@@ -1,4 +1,3 @@
-
 name: Build and deploy JAR app to DigitalOcean Droplet
 
 on:
@@ -47,7 +46,7 @@ jobs:
           name: java-app
           path: /tmp
 
-      - name: List files
+      - name: List files in /tmp
         run: ls -la /tmp
 
       - name: Deploy to DigitalOcean
@@ -56,8 +55,17 @@ jobs:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "/tmp/*.jar,karyanestApplication/src/main/resources/deploy/*"
+          source: "/tmp/*.jar,./karyanestApplication/src/main/resources/deploy/*"
           target: "/root/app/"
+
+      - name: List files on droplet
+        uses: appleboy/ssh-action@master
+        with:
+          host: 139.59.10.226
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            ls -la /root/app/
 
       - name: Start application
         uses: appleboy/ssh-action@master
