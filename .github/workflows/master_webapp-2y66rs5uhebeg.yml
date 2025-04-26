@@ -40,6 +40,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug repository structure
+        run: |
+          pwd
+          ls -la
+          ls -la karyanestApplication/src/main/resources/deploy/
+
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
@@ -50,16 +56,16 @@ jobs:
         run: ls -la /tmp
 
       - name: Deploy to DigitalOcean
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v0.1.2
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "/tmp/*.jar,./karyanestApplication/src/main/resources/deploy/*"
+          source: "/tmp/*.jar,./karyanestApplication/src/main/resources/deploy/setup.sh,./karyanestApplication/src/main/resources/deploy/karyanest.service,./karyanestApplication/src/main/resources/deploy/nginx.conf,./karyanestApplication/src/main/resources/deploy/application.properties,./karyanestApplication/src/main/resources/deploy/DigiCertGlobalRootG2.crt"
           target: "/root/app/"
 
       - name: List files on droplet
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v0.0.7
         with:
           host: 139.59.10.226
           username: root
@@ -68,12 +74,17 @@ jobs:
             ls -la /root/app/
 
       - name: Start application
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v0.0.7
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd /root/app
-            chmod +x setup.sh
-            ./setup.sh
+            if [ -f setup.sh ]; then
+              chmod +x setup.sh
+              ./setup.sh
+            else
+              echo "Error: setup.sh not found"
+              exit 1
+            fi
