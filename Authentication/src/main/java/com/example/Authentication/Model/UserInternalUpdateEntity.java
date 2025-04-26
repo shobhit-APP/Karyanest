@@ -46,6 +46,7 @@ public class UserInternalUpdateEntity {
     @JoinColumn(name = "role_id", nullable = false)
     private Roles role;
 
+    @Transient
     @Column(name = "last_login")
     private Timestamp lastLogin;
 
