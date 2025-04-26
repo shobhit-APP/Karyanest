@@ -44,7 +44,8 @@ jobs:
         run: |
           pwd
           ls -la
-          ls -la karyanestApplication/src/main/resources/deploy/
+          ls -la karyanestApplication/src/main/resources/deploy/ || echo "Deploy directory not found in src"
+          ls -la karyanestApplication/target/classes/deploy/ || echo "Deploy directory not found in target"
 
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
@@ -61,8 +62,9 @@ jobs:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "/tmp/*.jar,./karyanestApplication/src/main/resources/deploy/setup.sh,./karyanestApplication/src/main/resources/deploy/karyanest.service,./karyanestApplication/src/main/resources/deploy/nginx.conf,./karyanestApplication/src/main/resources/deploy/application.properties,./karyanestApplication/src/main/resources/deploy/DigiCertGlobalRootG2.crt"
+          source: "/tmp/*.jar,karyanestApplication/src/main/resources/deploy/*"
           target: "/root/app/"
+          debug: true
 
       - name: List files on droplet
         uses: appleboy/ssh-action@v0.0.7
