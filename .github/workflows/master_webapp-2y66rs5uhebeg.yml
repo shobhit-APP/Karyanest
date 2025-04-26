@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -29,7 +29,7 @@ jobs:
         with:
           name: java-app
           path: karyanestApplication/target/*.jar
-          if-no-files-found: error
+          if-no-files-found: warn
 
   deploy:
     runs-on: ubuntu-latest
@@ -38,71 +38,32 @@ jobs:
       name: 'Production'
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Debug repository structure
-        run: |
-          pwd
-          ls -la
-          ls -la karyanestApplication/src/main/resources/deploy/ || echo "Deploy directory not found in src"
-          ls -la karyanestApplication/target/classes/deploy/ || echo "Deploy directory not found in target"
-
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: java-app
-          path: /tmp
 
-      - name: List files in /tmp
-        run: ls -la /tmp
-
-      - name: Debug working directory files
-        run: |
-          pwd
-          ls -la
+      - name: List files
+        run: ls -la
 
       - name: Deploy to DigitalOcean
-        uses: appleboy/ssh-action@v0.0.7
+        uses: appleboy/scp-action@master
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          script: |
-            mkdir -p /root/app/
-            # Copy JAR from /tmp/ (use the first JAR file found)
-            JAR_FILE=$(ls /tmp/*.jar | head -n 1)
-            if [ -f "$JAR_FILE" ]; then
-              scp -o StrictHostKeyChecking=no "$JAR_FILE" root@139.59.10.226:/root/app/
-            else
-              echo "Error: No JAR file found in /tmp/"
-              exit 1
-            fi
-            # Copy deploy files
-            scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/setup.sh root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/karyanest.service root@139.59.10.226:/root/app/
-            scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/nginx.conf root@139.59.10.226:/root/app/
-
-      - name: List files on droplet
-        uses: appleboy/ssh-action@v0.0.7
-        with:
-          host: 139.59.10.226
-          username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
-          script: |
-            ls -la /root/app/
+          source: "*.jar"
+          target: "/root/app/"
 
       - name: Start application
-        uses: appleboy/ssh-action@v0.0.7
+        uses: appleboy/ssh-action@master
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd /root/app
-            if [ -f setup.sh ]; then
-              chmod +x setup.sh
-              ./setup.sh
-            else
-              echo "Error: setup.sh not found"
-              exit 1
-            fi
+            # Kill the existing process if running
+            pkill -f '*.jar' || true
+            # Start the application with nohup
+            nohup java -jar *.jar > app.log 2>&1 &
