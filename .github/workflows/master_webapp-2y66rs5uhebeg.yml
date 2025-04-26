@@ -29,7 +29,7 @@ jobs:
         with:
           name: java-app
           path: karyanestApplication/target/*.jar
-          if-no-files-found: warn
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
@@ -69,13 +69,18 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             mkdir -p /root/app/
-            scp -o StrictHostKeyChecking=no /tmp/*.jar root@139.59.10.226:/root/app/
+            # Copy JAR from /tmp/ (use the first JAR file found)
+            JAR_FILE=$(ls /tmp/*.jar | head -n 1)
+            if [ -f "$JAR_FILE" ]; then
+              scp -o StrictHostKeyChecking=no "$JAR_FILE" root@139.59.10.226:/root/app/
+            else
+              echo "Error: No JAR file found in /tmp/"
+              exit 1
+            fi
+            # Copy deploy files
             scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/setup.sh root@139.59.10.226:/root/app/
             scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/karyanest.service root@139.59.10.226:/root/app/
             scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/nginx.conf root@139.59.10.226:/root/app/
-            # Uncomment the following lines if application.properties and DigiCertGlobalRootG2.crt are needed
-            # scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/application.properties root@139.59.10.226:/root/app/
-            # scp -o StrictHostKeyChecking=no karyanestApplication/src/main/resources/deploy/DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
 
       - name: List files on droplet
         uses: appleboy/ssh-action@v0.0.7
