@@ -45,6 +45,7 @@ jobs:
           pwd
           ls -la
           ls -la karyanestApplication/src/main/resources/deploy/ || echo "Deploy directory not found in src"
+          ls -la karyanestApplication/target/classes/deploy/ || echo "Deploy directory not found in target"
 
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
@@ -61,21 +62,37 @@ jobs:
           ls -la
 
       - name: Deploy to DigitalOcean
-        uses: appleboy/scp-action@v0.1.2
+        uses: appleboy/ssh-action@v0.0.7
         with:
           host: 139.59.10.226
           username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "/tmp/*.jar,setup.sh,karyanest.service,nginx.conf"
-          target: "/root/app/"
-          debug: true
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            mkdir -p /root/app/
+            exit 0
+
+      - name: Copy JAR to DigitalOcean
+        run: |
+          scp -o StrictHostKeyChecking=no /tmp/*.jar root@139.59.10.226:/root/app/
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+
+      - name: Copy deploy files to DigitalOcean
+        run: |
+          scp -o StrictHostKeyChecking=no setup.sh root@139.59.10.226:/root/app/
+          scp -o StrictHostKeyChecking=no karyanest.service root@139.59.10.226:/root/app/
+          scp -o StrictHostKeyChecking=no nginx.conf root@139.59.10.226:/root/app/
+          scp -o StrictHostKeyChecking=no application.properties root@139.59.10.226:/root/app/
+          scp -o StrictHostKeyChecking=no DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
 
       - name: List files on droplet
         uses: appleboy/ssh-action@v0.0.7
         with:
           host: 139.59.10.226
           username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             ls -la /root/app/
 
@@ -84,7 +101,7 @@ jobs:
         with:
           host: 139.59.10.226
           username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /root/app
             if [ -f setup.sh ]; then
