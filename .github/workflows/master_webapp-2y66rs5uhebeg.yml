@@ -66,7 +66,7 @@ jobs:
         with:
           host: 139.59.10.226
           username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             mkdir -p /root/app/
             exit 0
@@ -76,6 +76,8 @@ jobs:
           scp -o StrictHostKeyChecking=no /tmp/*.jar root@139.59.10.226:/root/app/
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
+        continue-on-error: true
 
       - name: Copy deploy files to DigitalOcean
         run: |
@@ -86,13 +88,15 @@ jobs:
           scp -o StrictHostKeyChecking=no DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
+        continue-on-error: true
 
       - name: List files on droplet
         uses: appleboy/ssh-action@v0.0.7
         with:
           host: 139.59.10.226
           username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             ls -la /root/app/
 
@@ -101,7 +105,7 @@ jobs:
         with:
           host: 139.59.10.226
           username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd /root/app
             if [ -f setup.sh ]; then
