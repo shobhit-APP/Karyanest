@@ -1,3 +1,4 @@
+
 name: Build and deploy JAR app to DigitalOcean Droplet
 
 on:
@@ -10,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -27,34 +28,37 @@ jobs:
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-            name: java-app
-            path: karyanestApplication/target/*.jar
-            if-no-files-found: warn
+          name: java-app
+          path: karyanestApplication/target/*.jar
+          if-no-files-found: warn
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
       name: 'Production'
-    
+
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: java-app
-      
+          path: /tmp
+
       - name: List files
-        run: ls -la
-      
+        run: ls -la /tmp
+
       - name: Deploy to DigitalOcean
         uses: appleboy/scp-action@master
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "*.jar"
+          source: "/tmp/*.jar,karyanestApplication/src/main/resources/deploy/*"
           target: "/root/app/"
-          
+
       - name: Start application
         uses: appleboy/ssh-action@master
         with:
@@ -63,7 +67,5 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd /root/app
-            # Kill the existing process if running
-            pkill -f '*.jar' || true
-            # Start the application with nohup
-            nohup java -jar *.jar > app.log 2>&1 &
+            chmod +x setup.sh
+            ./setup.sh
