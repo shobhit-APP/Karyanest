@@ -45,7 +45,6 @@ jobs:
           pwd
           ls -la
           ls -la karyanestApplication/src/main/resources/deploy/ || echo "Deploy directory not found in src"
-          ls -la karyanestApplication/target/classes/deploy/ || echo "Deploy directory not found in target"
 
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
@@ -56,13 +55,18 @@ jobs:
       - name: List files in /tmp
         run: ls -la /tmp
 
+      - name: Debug working directory files
+        run: |
+          pwd
+          ls -la
+
       - name: Deploy to DigitalOcean
         uses: appleboy/scp-action@v0.1.2
         with:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "/tmp/*.jar,setup.sh,karyanest.service,nginx.conf,application.properties,DigiCertGlobalRootG2.crt"
+          source: "/tmp/*.jar,setup.sh,karyanest.service,nginx.conf"
           target: "/root/app/"
           debug: true
 
