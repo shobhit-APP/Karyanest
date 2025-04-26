@@ -62,7 +62,7 @@ jobs:
           host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "/tmp/*.jar,karyanestApplication/src/main/resources/deploy/*"
+          source: "/tmp/*.jar,setup.sh,karyanest.service,nginx.conf,application.properties,DigiCertGlobalRootG2.crt"
           target: "/root/app/"
           debug: true
 
