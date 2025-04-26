@@ -69,27 +69,12 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             mkdir -p /root/app/
-            exit 0
-
-      - name: Copy JAR to DigitalOcean
-        run: |
-          scp -o StrictHostKeyChecking=no /tmp/*.jar root@139.59.10.226:/root/app/
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-          DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
-        continue-on-error: true
-
-      - name: Copy deploy files to DigitalOcean
-        run: |
-          scp -o StrictHostKeyChecking=no setup.sh root@139.59.10.226:/root/app/
-          scp -o StrictHostKeyChecking=no karyanest.service root@139.59.10.226:/root/app/
-          scp -o StrictHostKeyChecking=no nginx.conf root@139.59.10.226:/root/app/
-          scp -o StrictHostKeyChecking=no application.properties root@139.59.10.226:/root/app/
-          scp -o StrictHostKeyChecking=no DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
-          DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
-        continue-on-error: true
+            scp -o StrictHostKeyChecking=no /tmp/*.jar root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no setup.sh root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no karyanest.service root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no nginx.conf root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no application.properties root@139.59.10.226:/root/app/
+            scp -o StrictHostKeyChecking=no DigiCertGlobalRootG2.crt root@139.59.10.226:/root/app/
 
       - name: List files on droplet
         uses: appleboy/ssh-action@v0.0.7
