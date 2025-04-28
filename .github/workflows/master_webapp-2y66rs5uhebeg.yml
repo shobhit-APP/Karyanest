@@ -8,12 +8,10 @@ on:
 
 env:
   DB_URL: ${{ secrets.DB_URL }}
-  DB_USERNAME: ${{ secrets.DB_USERNAME }}
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   DB_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
   JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
   REFERENCE_TOKEN_EXPIRATION: ${{ secrets.REFERENCE_TOKEN_EXPIRATION }}
-  MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
   MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
   KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
   PERMISSION_SECRET_KEY: ${{ secrets.PERMISSION_SECRET_KEY }}
