@@ -9,9 +9,13 @@ import com.backend.karyanestApplication.Model.Property;
 import com.backend.karyanestApplication.Repositry.PropertyFavoriteRepository;
 import com.backend.karyanestApplication.Repositry.UserRepo;
 import com.backend.karyanestApplication.Repositry.PropertyRepository;
+import com.example.Authentication.DTO.JWTUserDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.net.http.HttpRequest;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,12 +28,16 @@ public class PropertyFavoriteService {
     private final PropertyRepository propertyRepository;
 
     @Transactional
-    public PropertyFavoriteResponseDTO addFavorite(PropertyFavoriteRequestDTO request) {
-        if (propertyFavoriteRepository.existsByUserIdAndPropertyId(request.getUserId(), request.getPropertyId())) {
+    public PropertyFavoriteResponseDTO addFavorite(HttpServletRequest jwt, PropertyFavoriteRequestDTO request) {
+        JWTUserDTO jwtuser = (JWTUserDTO) jwt.getAttribute("user");
+        if (jwtuser == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+        if (propertyFavoriteRepository.existsByUserIdAndPropertyId(jwtuser.getUserId(), request.getPropertyId())) {
             throw new IllegalStateException("Property is already in favorites");
         }
 
-        User user = userRepository.findById(request.getUserId())
+        User user = userRepository.findById(jwtuser.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Property property = propertyRepository.findById(request.getPropertyId())
@@ -49,8 +57,12 @@ public class PropertyFavoriteService {
         return favorites.stream().map(favorite -> new PropertyDTO(favorite.getProperty())).collect(Collectors.toList());
     }
     @Transactional
-    public void removeFavorite(Long userId, Long propertyId) {
-        int deletedCount = propertyFavoriteRepository.deleteByUserIdAndPropertyId(userId, propertyId);
+    public void removeFavorite(HttpServletRequest jwt, Long propertyId) {
+        JWTUserDTO user = (JWTUserDTO) jwt.getAttribute("user");
+        if (user == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+        int deletedCount = propertyFavoriteRepository.deleteByUserIdAndPropertyId(user.getUserId(), propertyId);
 
         if (deletedCount > 0) {
             System.out.println("Property favorite deleted successfully.");
