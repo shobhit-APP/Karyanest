@@ -4,6 +4,7 @@ import com.backend.karyanestApplication.DTO.PropertyDTO;
 import com.backend.karyanestApplication.DTO.PropertyFavoriteRequestDTO;
 import com.backend.karyanestApplication.DTO.PropertyFavoriteResponseDTO;
 import com.backend.karyanestApplication.Service.PropertyFavoriteService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,8 +24,8 @@ public class PropertyFavoriteController {
     // Endpoint for adding favorites
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('favorites_create')")
-    public ResponseEntity<PropertyFavoriteResponseDTO> addFavorite(@RequestBody PropertyFavoriteRequestDTO request) {
-        return new ResponseEntity<>(propertyFavoriteService.addFavorite(request), HttpStatus.CREATED);
+    public ResponseEntity<PropertyFavoriteResponseDTO> addFavorite(HttpServletRequest jwt, @RequestBody PropertyFavoriteRequestDTO request) {
+        return new ResponseEntity<>(propertyFavoriteService.addFavorite(jwt, request), HttpStatus.CREATED);
     }
 
     // Endpoint for getting user favorites
@@ -37,8 +38,8 @@ public class PropertyFavoriteController {
     // Endpoint for removing favorites
     @DeleteMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('favorites_delete')")
-    public ResponseEntity<Void> removeFavorite(@RequestBody PropertyFavoriteRequestDTO request) {
-        propertyFavoriteService.removeFavorite(request.getUserId(), request.getPropertyId());
+    public ResponseEntity<Void> removeFavorite(HttpServletRequest jwt, @RequestBody PropertyFavoriteRequestDTO request) {
+        propertyFavoriteService.removeFavorite(jwt, request.getPropertyId());
         return ResponseEntity.noContent().build();
     }
 }

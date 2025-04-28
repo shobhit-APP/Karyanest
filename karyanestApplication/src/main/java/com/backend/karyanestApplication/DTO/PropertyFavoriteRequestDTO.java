@@ -8,6 +8,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PropertyFavoriteRequestDTO {
-    private Long userId;
     private Long propertyId;
 }

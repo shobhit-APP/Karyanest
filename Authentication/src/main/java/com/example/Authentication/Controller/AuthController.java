@@ -3,12 +3,11 @@ package com.example.Authentication.Controller;
 
 import com.example.Authentication.DTO.UpdateUserInternalDTO;
 import com.example.Authentication.DTO.UserDTO;
+import com.example.Authentication.Service.*;
 import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
 
 import com.example.Authentication.Component.UserContext;
-import com.example.Authentication.Service.EmailService;
 //import com.example.Authentication.Service.JwtService;
-import com.example.Authentication.Service.ReferenceTokenService;
 import com.example.Authentication.UTIL.JwtUtil;
 import com.example.Authentication.Service.Auth;
 import io.swagger.v3.oas.annotations.Operation;
@@ -370,6 +369,4 @@ public class AuthController {
                     .body(Map.of("error", "Password reset failed"));
         }
     }
-
-
 }

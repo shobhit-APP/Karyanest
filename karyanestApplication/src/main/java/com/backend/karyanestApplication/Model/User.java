@@ -119,7 +119,7 @@ public class User {
     }
     public  enum  UserStatus
     {
-        Active, Inactive,Deleted
+        Active, Inactive,Deleted, Blocked
     }
     @Column(name = "parent_code")
     private Long parentCode;
