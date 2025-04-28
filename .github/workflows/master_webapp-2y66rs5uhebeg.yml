@@ -65,7 +65,7 @@ jobs:
       - name: Deploy to DigitalOcean
         uses: appleboy/scp-action@master
         with:
-          host: 139.59.10.226
+          host: ${{ secrets.DROPLET_HOST }}
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           source: "*.jar"
@@ -74,7 +74,7 @@ jobs:
       - name: Start application
         uses: appleboy/ssh-action@master
         with:
-          host: 139.59.10.226
+          host: ${{ secrets.DROPLET_HOST}}
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
