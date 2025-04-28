@@ -6,11 +6,23 @@ on:
       - master
   workflow_dispatch:
 
+env:
+  DB_URL: ${{ secrets.DB_URL }}
+  DB_USERNAME: ${{ secrets.DB_USERNAME }}
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+  JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
+  REFERENCE_TOKEN_EXPIRATION: ${{ secrets.REFERENCE_TOKEN_EXPIRATION }}
+  MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+  MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+  KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+  PERMISSION_SECRET_KEY: ${{ secrets.PERMISSION_SECRET_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +75,6 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
             cd /root/app
-            # Kill the existing process if running
             pkill -f '*.jar' || true
-            # Start the application with nohup
             nohup java -jar *.jar > app.log 2>&1 &
+            echo "Application started"
