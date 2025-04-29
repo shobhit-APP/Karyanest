@@ -82,4 +82,4 @@ jobs:
             sleep 5
             echo "Showing last 20 log lines:"
             tail -n 20 app.log
-            echo "✅ Application started successfully."
+            echo "✅ Application started successfull."
