@@ -157,7 +157,16 @@ jobs:
             fi
 
             echo "Starting new JAR: $JAR_FILE..."
-            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
+            nohup java -jar "$JAR_FILE" \
+              -Dspring.datasource.password="${DB_PASSWORD}" \
+              -Dfirebase.client-email="${FIREBASE_CLIENT_EMAIL}" \
+              -Dfirebase.client-id="${FIREBASE_CLIENT_ID}" \
+              -Dfirebase.private-key="${FIREBASE_PRIVATE_KEY}" \
+              -Dfirebase.private-key-id="${FIREBASE_PRIVATE_KEY_ID}" \
+              -Dfirebase.project-id="${FIREBASE_PROJECT_ID}" \
+              -Dmail.password="${MAIL_PASSWORD}" \
+              -Dpermission.secret-key="${PERMISSION_SECRET_KEY}" \
+              > app.log 2>&1 &
             NEW_PID=$!
             sleep 30
 
