@@ -1,4 +1,3 @@
-
 package com.example.notification.Configuration;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -10,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.PostConstruct;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.Base64;
 
 @Configuration
 public class FirebaseConfig {
@@ -18,17 +19,38 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            String privateKey = System.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n");
+            // Get environment variables
+            String privateKeyBase64 = System.getenv("FIREBASE_PRIVATE_KEY");
+            String projectId = System.getenv("FIREBASE_PROJECT_ID");
+            String privateKeyId = System.getenv("FIREBASE_PRIVATE_KEY_ID");
+            String clientEmail = System.getenv("FIREBASE_CLIENT_EMAIL");
+            String clientId = System.getenv("FIREBASE_CLIENT_ID");
 
-            GoogleCredentials credentials = GoogleCredentials.fromStream(new ByteArrayInputStream(
-                    ("{\"type\":\"service_account\",\"project_id\":\"" + System.getenv("FIREBASE_PROJECT_ID") +
-                            "\",\"private_key_id\":\"" + System.getenv("FIREBASE_PRIVATE_KEY_ID") +
-                            "\",\"private_key\":\"" + privateKey +
-                            "\",\"client_email\":\"" + System.getenv("FIREBASE_CLIENT_EMAIL") +
-                            "\",\"client_id\":\"" + System.getenv("FIREBASE_CLIENT_ID") +
-                            "\",\"auth_uri\":\"https://accounts.google.com/o/oauth2/auth\",\"token_uri\":\"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\":\"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\":\"https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40karyanest-275c3.iam.gserviceaccount.com\",\"universe_domain\":\"googleapis.com\"}")
-                            .getBytes()));
+            // Validate environment variables
+            if (privateKeyBase64 == null || projectId == null || privateKeyId == null ||
+                    clientEmail == null || clientId == null) {
+                throw new IllegalArgumentException("One or more Firebase environment variables are not set");
+            }
 
+            // Decode Base64-encoded private key
+            String privateKey = new String(Base64.getDecoder().decode(privateKeyBase64));
+
+            // Construct JSON, escaping newlines in private_key
+            String serviceAccountJson = String.format(
+                    "{\"type\":\"service_account\",\"project_id\":\"%s\",\"private_key_id\":\"%s\",\"private_key\":\"%s\",\"client_email\":\"%s\",\"client_id\":\"%s\",\"auth_uri\":\"https://accounts.google.com/o/oauth2/auth\",\"token_uri\":\"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\":\"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\":\"https://www.googleapis.com/robot/v1/metadata/x509/%s\",\"universe_domain\":\"googleapis.com\"}",
+                    projectId, privateKeyId, privateKey.replace("\n", "\\n"), clientEmail, clientId, clientEmail
+            );
+
+            // Log JSON for debugging (remove in production)
+            log.debug("Service Account JSON: {}", serviceAccountJson);
+
+            // Convert to InputStream
+            ByteArrayInputStream serviceAccountStream = new ByteArrayInputStream(serviceAccountJson.getBytes("UTF-8"));
+
+            // Load credentials
+            GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccountStream);
+
+            // Initialize Firebase
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(credentials)
                     .build();
@@ -39,7 +61,7 @@ public class FirebaseConfig {
             } else {
                 log.info("Firebase already initialized");
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             log.error("Failed to initialize Firebase: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize Firebase: " + e.getMessage(), e);
         }
