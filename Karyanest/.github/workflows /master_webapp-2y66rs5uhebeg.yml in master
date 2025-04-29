@@ -1,1 +1,88 @@
 
+name: Build and deploy JAR app to DigitalOcean Droplets
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+    DB_URL: ${{ secrets.DB_URL }}
+    DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    DB_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
+    DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
+    FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+    FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
+    FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+    FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
+    FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+    JWT_EXPIRATION: ${{ secrets.JWT_EXPIRATION }}
+    REFERENCE_TOKEN_EXPIRATION: ${{ secrets.REFERENCE_TOKEN_EXPIRATION }}
+    MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+    KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+    PERMISSION_SECRET_KEY: ${{ secrets.PERMISSION_SECRET_KEY }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java version
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean install
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-app
+          path: karyanestApplication/target/*.jar
+          if-no-files-found: warn
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production'
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: java-app
+
+      - name: List files
+        run: ls -la
+
+      - name: Deploy to DigitalOcean
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          source: "*.jar"
+          target: "/root/app/"
+
+      - name: Start application
+        uses: appleboy/ssh-action@master
+        with:
+         host: ${{ secrets.DROPLET_HOST}}
+         username: root
+         password: ${{ secrets.DROPLET_PASSWORD }}
+         script: |
+             cd /root/app
+             pkill -f '*.jar' || true
+             nohup java -jar *.jar > app.log 2>&1 &
+             sleep 5  # Wait for the application to start
+             cat app.log  # Output logs to GitHub Actions console
+             echo "Application started"
+    
