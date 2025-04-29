@@ -73,37 +73,44 @@ jobs:
           host: ${{ secrets.DROPLET_HOST }}
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
+          debug: true
           script: |
             set -e  # Exit on any error
             cd /root/app
-            echo "Stopping old JAR process (if running)..."
-            PID=$(pgrep -f '\.jar' || true)  # Don't fail if no process is found
-            if [ -n "$PID" ]; then
-              echo "Found running JAR process with PID: $PID"
-              kill -TERM $PID || true  # Send SIGTERM, ignore errors
-              echo "Waiting for process to terminate..."
-              for i in {1..30}; do
-                if ! ps -p $PID > /dev/null; then
-                  echo "✅ Old JAR process stopped"
-                  break
+            echo "Listing files in /root/app..."
+            ls -la
+
+            echo "Stopping old JAR processes (if running)..."
+            PIDS=$(pgrep -f '\.jar' || true)
+            if [ -n "$PIDS" ]; then
+              echo "Found running JAR processes: $PIDS"
+              for PID in $PIDS; do
+                echo "Terminating process $PID..."
+                kill -TERM $PID || true
+                echo "Waiting for process $PID to terminate..."
+                for i in {1..30}; do
+                  if ! ps -p $PID > /dev/null; then
+                    echo "✅ Process $PID stopped"
+                    break
+                  fi
+                  sleep 1
+                done
+                if ps -p $PID > /dev/null; then
+                  echo "⚠️ Process $PID still running, sending SIGKILL..."
+                  kill -KILL $PID || true
                 fi
-                sleep 1
               done
-              if ps -p $PID > /dev/null; then
-                echo "⚠️ Process $PID still running, sending SIGKILL..."
-                kill -KILL $PID || true
-              fi
             else
-              echo "No running JAR process found."
+              echo "No running JAR processes found."
             fi
 
-            # Find the JAR file (expecting exactly one)
-            JAR_FILE=$(ls *.jar | head -n 1)
+            # Find the JAR file
+            JAR_FILE=$(ls *.jar 2>/dev/null | head -n 1)
             if [ -z "$JAR_FILE" ]; then
               echo "❌ No JAR file found in /root/app/"
               exit 1
             fi
-            if [ $(ls *.jar | wc -l) -gt 1 ]; then
+            if [ $(ls *.jar 2>/dev/null | wc -l) -gt 1 ]; then
               echo "⚠️ Multiple JAR files found, using $JAR_FILE"
             fi
 
