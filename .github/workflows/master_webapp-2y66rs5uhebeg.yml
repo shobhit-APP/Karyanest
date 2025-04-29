@@ -58,7 +58,49 @@ jobs:
       - name: List files
         run: ls -la
 
-      - name: Deploy to DigitalOcean
+      - name: Clean and prepare remote server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: root
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          debug: true
+          script: |
+            set -e
+            echo "Listing running Java processes..."
+            ps aux | grep '[j]ava' || true
+
+            echo "Terminating all running JAR processes..."
+            PIDS=$(pgrep -f '\.jar' || true)
+            if [ -n "$PIDS" ]; then
+              echo "Found running JAR processes: $PIDS"
+              for PID in $PIDS; do
+                echo "Terminating process $PID..."
+                kill -TERM "$PID" 2>/dev/null || true
+                echo "Waiting for process $PID to terminate..."
+                for i in {1..30}; do
+                  if ! ps -p "$PID" >/dev/null 2>&1; then
+                    echo "✅ Process $PID stopped"
+                    break
+                  fi
+                  sleep 1
+                done
+                if ps -p "$PID" >/dev/null 2>&1; then
+                  echo "⚠️ Process $PID still running, sending SIGKILL..."
+                  kill -KILL "$PID" 2>/dev/null || true
+                fi
+              done
+            else
+              echo "No running JAR processes found."
+            fi
+
+            echo "Cleaning /root/app directory..."
+            rm -rf /root/app
+            mkdir -p /root/app
+            chown root:root /root/app
+            chmod 755 /root/app
+
+      - name: Copy JAR to DigitalOcean
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.DROPLET_HOST }}
@@ -66,6 +108,9 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           source: "*.jar"
           target: "/root/app/"
+          strip_components: 0
+          overwrite: true
+          rm: true
 
       - name: Start application
         uses: appleboy/ssh-action@master
@@ -75,39 +120,24 @@ jobs:
           password: ${{ secrets.DROPLET_PASSWORD }}
           debug: true
           script: |
-            set -e  # Exit on any error
+            set -e
             cd /root/app
             echo "Listing files in /root/app..."
             ls -la
 
-            echo "Stopping old JAR processes (if running)..."
+            # Verify no lingering JAR processes
             PIDS=$(pgrep -f '\.jar' || true)
             if [ -n "$PIDS" ]; then
-              echo "Found running JAR processes: $PIDS"
-              for PID in $PIDS; do
-                echo "Terminating process $PID..."
-                kill -TERM $PID || true
-                echo "Waiting for process $PID to terminate..."
-                for i in {1..30}; do
-                  if ! ps -p $PID > /dev/null; then
-                    echo "✅ Process $PID stopped"
-                    break
-                  fi
-                  sleep 1
-                done
-                if ps -p $PID > /dev/null; then
-                  echo "⚠️ Process $PID still running, sending SIGKILL..."
-                  kill -KILL $PID || true
-                fi
-              done
-            else
-              echo "No running JAR processes found."
+              echo "❌ Error: Found lingering JAR processes: $PIDS"
+              ps aux | grep '[j]ava'
+              exit 1
             fi
 
             # Find the JAR file
             JAR_FILE=$(ls *.jar 2>/dev/null | head -n 1)
             if [ -z "$JAR_FILE" ]; then
               echo "❌ No JAR file found in /root/app/"
+              ls -la
               exit 1
             fi
             if [ $(ls *.jar 2>/dev/null | wc -l) -gt 1 ]; then
@@ -120,11 +150,13 @@ jobs:
             sleep 10
 
             # Check if the new process is still running
-            if ps -p $NEW_PID > /dev/null; then
+            if ps -p "$NEW_PID" >/dev/null 2>&1; then
               echo "✅ Application started successfully with PID: $NEW_PID"
             else
               echo "❌ Application failed to start. Checking logs..."
-              tail -n 50 app.log
+              cat app.log
+              echo "Listing running Java processes..."
+              ps aux | grep '[j]ava' || true
               exit 1
             fi
 
