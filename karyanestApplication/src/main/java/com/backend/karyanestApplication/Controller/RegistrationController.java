@@ -55,7 +55,7 @@ public class RegistrationController {
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:[0-9]+}")
     public ResponseEntity<?> getParentUser(@PathVariable Long id) {
         List<User> users = userService.getParentUser(id);
         if (users != null && !users.isEmpty()) {
