@@ -18,27 +18,16 @@ public class FirebaseConfig {
     @PostConstruct
     public void initialize() {
         try {
-            String firebaseConfig = "{\n" +
-                    "  \"type\": \"service_account\",\n" +
-                    "  \"project_id\": \"${FIREBASE_PROJECT_ID}\",\n" +
-                    "  \"private_key_id\": \"${FIREBASE_PRIVATE_KEY_ID}\",\n" +
-                    "  \"private_key\": \"${FIREBASE_PRIVATE_KEY}\",\n" +
-                    "  \"client_email\": \"${FIREBASE_CLIENT_EMAIL}\",\n" +
-                    "  \"client_id\": \"${FIREBASE_CLIENT_ID}\",\n" +
-                    "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n" +
-                    "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n" +
-                    "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n" +
-                    "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40karyanest-275c3.iam.gserviceaccount.com\",\n" +
-                    "  \"universe_domain\": \"googleapis.com\"\n" +
-                    "}";
+            String privateKey = System.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n");
 
-            firebaseConfig = firebaseConfig.replace("${FIREBASE_PROJECT_ID}", System.getenv("FIREBASE_PROJECT_ID"));
-            firebaseConfig = firebaseConfig.replace("${FIREBASE_PRIVATE_KEY_ID}", System.getenv("FIREBASE_PRIVATE_KEY_ID"));
-            firebaseConfig = firebaseConfig.replace("${FIREBASE_PRIVATE_KEY}", System.getenv("FIREBASE_PRIVATE_KEY").replace("\\n", "\n"));
-            firebaseConfig = firebaseConfig.replace("${FIREBASE_CLIENT_EMAIL}", System.getenv("FIREBASE_CLIENT_EMAIL"));
-            firebaseConfig = firebaseConfig.replace("${FIREBASE_CLIENT_ID}", System.getenv("FIREBASE_CLIENT_ID"));
-
-            GoogleCredentials credentials = GoogleCredentials.fromStream(new ByteArrayInputStream(firebaseConfig.getBytes()));
+            GoogleCredentials credentials = GoogleCredentials.fromStream(new ByteArrayInputStream(
+                    ("{\"type\":\"service_account\",\"project_id\":\"" + System.getenv("FIREBASE_PROJECT_ID") +
+                            "\",\"private_key_id\":\"" + System.getenv("FIREBASE_PRIVATE_KEY_ID") +
+                            "\",\"private_key\":\"" + privateKey +
+                            "\",\"client_email\":\"" + System.getenv("FIREBASE_CLIENT_EMAIL") +
+                            "\",\"client_id\":\"" + System.getenv("FIREBASE_CLIENT_ID") +
+                            "\",\"auth_uri\":\"https://accounts.google.com/o/oauth2/auth\",\"token_uri\":\"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\":\"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\":\"https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40karyanest-275c3.iam.gserviceaccount.com\",\"universe_domain\":\"googleapis.com\"}")
+                            .getBytes()));
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(credentials)
