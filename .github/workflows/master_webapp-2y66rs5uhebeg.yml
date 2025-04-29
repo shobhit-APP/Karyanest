@@ -1,5 +1,5 @@
 
-name: Build and deploy JAR app to DigitalOcean Droplet
+name: Build and deploy JAR app to DigitalOcean Droplets
 
 on:
   push:
