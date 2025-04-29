@@ -1,4 +1,4 @@
-name: Build and deploy JAR app to DigitalOcean Droplets
+name: Build and Deploy JAR App to DigitalOcean Droplet
 
 on:
   push:
@@ -25,69 +25,102 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Java version
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build with Maven
-        run: mvn clean install
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
 
-      - name: Upload artifact for deployment job
+      - name: Build with Maven
+        run: mvn clean test install
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: karyanestApplication/target/*.jar
-          if-no-files-found: warn
+          path: karyanestApplication/target/karyanestApplication.jar
+          if-no-files-found: error
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
+      name: Production
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: java-app
 
-      - name: List files
-        run: ls -la
+      - name: Verify JAR file
+        run: |
+          if [ ! -f karyanestApplication.jar ]; then
+            echo "Error: JAR file not found!"
+            exit 1
+          fi
 
       - name: Deploy to DigitalOcean
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DROPLET_HOST }}
-          username: root
+          username: deployer
           password: ${{ secrets.DROPLET_PASSWORD }}
-          source: "*.jar"
-          target: "/root/app/"
+          source: "karyanestApplication.jar"
+          target: "/home/deployer/app/"
 
       - name: Start application
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.DROPLET_HOST }}
-          username: root
+          username: deployer
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
-            cd /root/app
+            # Create app directory if it doesn't exist
+            mkdir -p /home/deployer/app
+            cd /home/deployer/app
+
+            # Stop old JAR process (if running)
             echo "Stopping old JAR process (if running)..."
-            PID=$(pgrep -f '\.jar')
-            if [ -n "$PID" ]; then
-              echo "Found running JAR process with PID: $PID"
-              kill $PID
-              sleep 10
-              echo "✅ Old JAR process stopped."
-            else
-              echo "No running JAR process found."
+            if [ -f app.pid ]; then
+              kill $(cat app.pid) || echo "No old JAR process found."
+              rm app.pid
             fi
+
+            # Set environment variables for the application
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export DB_DRIVER_CLASS_NAME="${{ env.DB_DRIVER_CLASS_NAME }}"
+            export FIREBASE_CLIENT_EMAIL="${{ secrets.FIREBASE_CLIENT_EMAIL }}"
+            export FIREBASE_CLIENT_ID="${{ secrets.FIREBASE_CLIENT_ID }}"
+            export FIREBASE_PRIVATE_KEY="${{ secrets.FIREBASE_PRIVATE_KEY }}"
+            export FIREBASE_PRIVATE_KEY_ID="${{ secrets.FIREBASE_PRIVATE_KEY_ID }}"
+            export FIREBASE_PROJECT_ID="${{ secrets.FIREBASE_PROJECT_ID }}"
+            export MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}"
+            export PERMISSION_SECRET_KEY="${{ secrets.PERMISSION_SECRET_KEY }}"
+
+            # Start new JAR
             echo "Starting new JAR..."
-            nohup java -jar *.jar > app.log 2>&1 &
+            nohup java -jar karyanestApplication.jar > app.log 2>&1 & echo $! > app.pid
+
+            # Wait for the application to start
             sleep 10
-            echo "Showing last 20 log lines:"
-            tail -n 20 app.log
-            echo "✅ Application started successfully."
+
+            # Check if the process is running
+            if ps -p $(cat app.pid) > /dev/null; then
+              echo "✅ Application started successfully."
+              cat app.log | grep -v "password\\|secret"
+            else
+              echo "❌ Failed to start application. Check logs:"
+              cat app.log
+              exit 1
+            fi
