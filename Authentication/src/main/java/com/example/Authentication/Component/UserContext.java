@@ -78,4 +78,9 @@ public class UserContext {
         String token=extractToken(request);
         return (token != null) ? jwtUtil.fullname(token) : null;
     }
+
+    public Long extractUserId(HttpServletRequest request) {
+        String token =extractToken(request);
+        return (token!=null)?jwtUtil.UserId(token):null;
+    }
 }

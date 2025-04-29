@@ -83,7 +83,7 @@ public class AuthorizationFilter extends OncePerRequestFilter {
         }
 
         // Set user in request scope
-        Long userId = userContext.extractJWTValue(request, "userId", Long.class);
+        Long userId = userContext.extractUserId(request);
         JWTUserDTO user = new JWTUserDTO(userId, username, role, fullName);
         request.setAttribute("user", user);
 

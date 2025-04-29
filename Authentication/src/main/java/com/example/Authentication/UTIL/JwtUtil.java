@@ -131,4 +131,8 @@ public class JwtUtil {
         return List.of(); // Return empty list if no valid permissions found
     }
 
+    public Long UserId(String token) {
+        return getClaims(token).get("userId",Long.class);
+
+    }
 }
