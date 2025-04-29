@@ -1,4 +1,4 @@
-name: Build and Deploy JAR App to DigitalOcean Droplet
+name: Build and deploy JAR app to DigitalOcean Droplets
 
 on:
   push:
@@ -21,21 +21,22 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java version
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
           java-version: '21'
+          distribution: 'temurin'
 
       - name: Build with Maven
-        run: mvn clean install --file karyanestApplication/pom.xml
+        run: mvn clean install
 
-      - name: Upload JAR artifact
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
@@ -49,15 +50,15 @@ jobs:
       name: 'Production'
 
     steps:
-      - name: Download JAR artifact
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: java-app
 
-      - name: List files for verification
+      - name: List files
         run: ls -la
 
-      - name: Copy JAR to DigitalOcean Droplet
+      - name: Deploy to DigitalOcean
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.DROPLET_HOST }}
@@ -66,43 +67,59 @@ jobs:
           source: "*.jar"
           target: "/root/app/"
 
-      - name: Restart Spring Boot JAR
+      - name: Start application
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
-            set -e
+            set -e  # Exit on any error
             cd /root/app
-            echo "Stopping existing JAR (if any)..."
-            PID=$(pgrep -f '\.jar' || true)
+            echo "Stopping old JAR process (if running)..."
+            PID=$(pgrep -f '\.jar' || true)  # Don't fail if no process is found
             if [ -n "$PID" ]; then
-              echo "Killing PID $PID"
-              kill -TERM $PID || true
-              sleep 5
+              echo "Found running JAR process with PID: $PID"
+              kill -TERM $PID || true  # Send SIGTERM, ignore errors
+              echo "Waiting for process to terminate..."
+              for i in {1..30}; do
+                if ! ps -p $PID > /dev/null; then
+                  echo "✅ Old JAR process stopped"
+                  break
+                fi
+                sleep 1
+              done
               if ps -p $PID > /dev/null; then
+                echo "⚠️ Process $PID still running, sending SIGKILL..."
                 kill -KILL $PID || true
               fi
+            else
+              echo "No running JAR process found."
             fi
 
+            # Find the JAR file (expecting exactly one)
             JAR_FILE=$(ls *.jar | head -n 1)
             if [ -z "$JAR_FILE" ]; then
-              echo "No JAR found!"
+              echo "❌ No JAR file found in /root/app/"
               exit 1
             fi
+            if [ $(ls *.jar | wc -l) -gt 1 ]; then
+              echo "⚠️ Multiple JAR files found, using $JAR_FILE"
+            fi
 
-            echo "Launching $JAR_FILE..."
+            echo "Starting new JAR: $JAR_FILE..."
             nohup java -jar "$JAR_FILE" > app.log 2>&1 &
             NEW_PID=$!
             sleep 10
+
+            # Check if the new process is still running
             if ps -p $NEW_PID > /dev/null; then
-              echo "✅ App started successfully (PID: $NEW_PID)"
+              echo "✅ Application started successfully with PID: $NEW_PID"
             else
-              echo "❌ App failed. Logs:"
+              echo "❌ Application failed to start. Checking logs..."
               tail -n 50 app.log
               exit 1
             fi
 
-            echo "📜 Last 20 lines of logs:"
+            echo "Showing last 20 log lines:"
             tail -n 20 app.log
