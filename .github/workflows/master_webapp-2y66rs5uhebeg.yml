@@ -74,12 +74,13 @@ jobs:
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
-            cd /root/app
-            echo "Stopping old JAR process (if running)..."
-            pkill -f '\.jar' || true
-            echo "Starting new JAR..."
-            nohup java -jar *.jar > app.log 2>&1 &
-            sleep 5
-            echo "Showing last 20 log lines:"
-            tail -n 20 app.log
-            echo "✅ Application started successfull."
+           cd /root/app
+           echo "Stopping old JAR process (if running)..."
+           pkill -f '\.jar' || echo "No JAR process found to kill."
+           echo "Starting new JAR..."
+           nohup java -jar *.jar > app.log 2>&1 &
+           sleep 5
+           echo "Showing last 20 log lines:"
+           tail -n 20 app.log
+           echo "✅ Application started successfully."
+
