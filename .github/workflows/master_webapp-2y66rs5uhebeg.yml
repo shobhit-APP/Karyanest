@@ -76,7 +76,16 @@ jobs:
           script: |
            cd /root/app
            echo "Stopping old JAR process (if running)..."
-           pkill -f '\.jar' || echo "No JAR process found to kill."
+           PID=$(pgrep -f '\.jar')
+           if [ -n "$PID" ]; then
+           echo "Found running JAR process with PID: $PID"
+           kill $PID
+           sleep 3
+           echo "✅ Old JAR process stopped."
+           else
+           echo "No running JAR process found."
+           fi
+
            echo "Starting new JAR..."
            nohup java -jar *.jar > app.log 2>&1 &
            sleep 5
