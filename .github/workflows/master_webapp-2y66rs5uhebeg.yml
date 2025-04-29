@@ -8,11 +8,6 @@ on:
 
 env:
   DB_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-  FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-  FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
-  FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-  FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
-  FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
   DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
 
 jobs:
@@ -65,12 +60,5 @@ jobs:
           script: |
             cd /root/app
             pkill -f '*.jar' || true
-            # Decode Base64-encoded FIREBASE_PRIVATE_KEY
-            echo "${FIREBASE_PRIVATE_KEY}" | base64 --decode > private-key.pem
-            export FIREBASE_PRIVATE_KEY="$(cat private-key.pem)"
-            export FIREBASE_CLIENT_EMAIL="${FIREBASE_CLIENT_EMAIL}"
-            export FIREBASE_CLIENT_ID="${FIREBASE_CLIENT_ID}"
-            export FIREBASE_PRIVATE_KEY_ID="${FIREBASE_PRIVATE_KEY_ID}"
-            export FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID}"
             export DB_DRIVER_CLASS_NAME="${DB_DRIVER_CLASS_NAME}"
             nohup java -jar *.jar > app.log 2>&1 &
