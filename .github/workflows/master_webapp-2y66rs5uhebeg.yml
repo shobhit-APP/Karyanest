@@ -74,20 +74,52 @@ jobs:
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
+            set -e  # Exit on any error
             cd /root/app
             echo "Stopping old JAR process (if running)..."
-            PID=$(pgrep -f '\.jar')
+            PID=$(pgrep -f '\.jar' || true)  # Don't fail if no process is found
             if [ -n "$PID" ]; then
               echo "Found running JAR process with PID: $PID"
-              kill $PID
-              sleep 10
-              echo "✅ Old JAR process stopped."
+              kill -TERM $PID || true  # Send SIGTERM, ignore errors
+              echo "Waiting for process to terminate..."
+              for i in {1..30}; do
+                if ! ps -p $PID > /dev/null; then
+                  echo "✅ Old JAR process stopped."
+                  break
+                fi
+                sleep 1
+              done
+              if ps -p $PID > /dev/null; then
+                echo "⚠️ Process $PID still running, sending SIGKILL..."
+                kill -KILL $PID || true
+              fi
             else
               echo "No running JAR process found."
             fi
-            echo "Starting new JAR..."
-            nohup java -jar *.jar > app.log 2>&1 &
+
+            # Find the JAR file (expecting exactly one)
+            JAR_FILE=$(ls *.jar | head -n 1)
+            if [ -z "$JAR_FILE" ]; then
+              echo "❌ No JAR file found in /root/app/"
+              exit 1
+            fi
+            if [ $(ls *.jar | wc -l) -gt 1 ]; then
+              echo "⚠️ Multiple JAR files found, using $JAR_FILE"
+            fi
+
+            echo "Starting new JAR: $JAR_FILE..."
+            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
+            NEW_PID=$!
             sleep 10
+
+            # Check if the new process is still running
+            if ps -p $NEW_PID > /dev/null; then
+              echo "✅ Application started successfully with PID: $NEW_PID"
+            else
+              echo "❌ Application failed to start. Checking logs..."
+              tail -n 50 app.log
+              exit 1
+            fi
+
             echo "Showing last 20 log lines:"
             tail -n 20 app.log
-            echo "✅ Application started successfully."
