@@ -80,7 +80,7 @@ jobs:
             if [ -n "$PID" ]; then
               echo "Found running JAR process with PID: $PID"
               kill $PID
-              sleep 3
+              sleep 10
               echo "✅ Old JAR process stopped."
             else
               echo "No running JAR process found."
