@@ -74,11 +74,14 @@ jobs:
       - name: Start application
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.DROPLET_HOST}}
-          username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
-          script: |
-            cd /root/app
-            pkill -f '*.jar' || true
-            nohup java -jar *.jar > app.log 2>&1 &
-            echo "Application started"
+         host: ${{ secrets.DROPLET_HOST}}
+         username: root
+         password: ${{ secrets.DROPLET_PASSWORD }}
+         script: |
+             cd /root/app
+             pkill -f '*.jar' || true
+             nohup java -jar *.jar > app.log 2>&1 &
+             sleep 5  # Wait for the application to start
+             cat app.log  # Output logs to GitHub Actions console
+             echo "Application started"
+    
