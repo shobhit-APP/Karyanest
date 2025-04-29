@@ -1,4 +1,7 @@
-name: Build and deploy JAR app to DigitalOcean Droplets
+Yeh hai aapka GitHub Actions workflow file:
+
+
+name: Build and deploy JAR app to DigitalOcean Droplet
 
 on:
   push:
@@ -15,25 +18,22 @@ env:
   FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
   MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
   PERMISSION_SECRET_KEY: ${{ secrets.PERMISSION_SECRET_KEY }}
+  DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Java version
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-
       - name: Build with Maven
         run: mvn clean install
-
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
@@ -46,169 +46,28 @@ jobs:
     needs: build
     environment:
       name: 'Production'
-
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: java-app
-
-      - name: List local files
+      - name: List files
         run: ls -la
-
-      - name: Clean and prepare remote server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
-          debug: true
-          timeout: 120s
-          command_timeout: 30m
-          script: |
-            set -e
-            echo "Initial server state..."
-            ps aux | grep '[j]ava' || true
-            df -h || true
-            ls -la /root/app 2>/dev/null || echo "/root/app does not exist"
-
-            echo "Terminating all running JAR processes..."
-            PIDS=$(pgrep -f '\.jar' || true)
-            if [ -n "$PIDS" ]; then
-              echo "Found running JAR processes: $PIDS"
-              for PID in $PIDS; do
-                echo "Terminating process $PID..."
-                kill -TERM "$PID" 2>/dev/null || true
-                echo "Waiting for process $PID to terminate..."
-                for i in {1..30}; do
-                  if ! ps -p "$PID" >/dev/null 2>&1; then
-                    echo "✅ Process $PID stopped"
-                    break
-                  fi
-                  sleep 1
-                done
-                if ps -p "$PID" >/dev/null 2>&1; then
-                  echo "⚠️ Process $PID still running, sending SIGKILL..."
-                  kill -KILL "$PID" 2>/dev/null || true
-                fi
-              done
-            else
-              echo "No running JAR processes found."
-            fi
-
-            echo "Cleaning /root/app directory..."
-            rm -rf /root/app
-            mkdir -p /root/app
-            chown root:root /root/app
-            chmod 755 /root/app
-            ls -la /root/app
-            echo "✅ Cleanup completed"
-
-      - name: Copy JAR to DigitalOcean
+      - name: Deploy to DigitalOcean
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.DROPLET_HOST }}
+          host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           source: "*.jar"
           target: "/root/app/"
-          strip_components: 0
-          overwrite: true
-          rm: true
-
       - name: Start application
         uses: appleboy/ssh-action@master
-        env:
-          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
-          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
-          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
-          PERMISSION_SECRET_KEY: ${{ secrets.PERMISSION_SECRET_KEY }}
         with:
-          host: ${{ secrets.DROPLET_HOST }}
+          host: 139.59.10.226
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
-          debug: true
-          timeout: 120s
-          command_timeout: 30m
           script: |
-            set -e
             cd /root/app
-            echo "Listing files in /root/app..."
-            ls -la
-
-            # Fix JAR permissions
-            JAR_FILE=$(ls *.jar 2>/dev/null | head -n 1)
-            if [ -z "$JAR_FILE" ]; then
-              echo "❌ No JAR file found in /root/app/"
-              ls -la
-              exit 1
-            fi
-            chown root:root "$JAR_FILE"
-            chmod 644 "$JAR_FILE"
-            ls -la
-
-            # Verify no lingering JAR processes
-            PIDS=$(pgrep -f '\.jar' || true)
-            if [ -n "$PIDS" ]; then
-              echo "❌ Error: Found lingering JAR processes: $PIDS"
-              ps aux | grep '[j]ava'
-              exit 1
-            fi
-
-            if [ $(ls *.jar 2>/dev/null | wc -l) -gt 1 ]; then
-              echo "⚠️ Multiple JAR files found, using $JAR_FILE"
-            fi
-
-            echo "Starting new JAR: $JAR_FILE..."
-            export FIREBASE_CLIENT_EMAIL="${FIREBASE_CLIENT_EMAIL}"
-            export FIREBASE_CLIENT_ID="${FIREBASE_CLIENT_ID}"
-            export FIREBASE_PRIVATE_KEY="${FIREBASE_PRIVATE_KEY}"
-            export FIREBASE_PRIVATE_KEY_ID="${FIREBASE_PRIVATE_KEY_ID}"
-            export FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID}"
-            export MAIL_PASSWORD="${MAIL_PASSWORD}"
-            export PERMISSION_SECRET_KEY="${PERMISSION_SECRET_KEY}"
-            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
-            NEW_PID=$!
-            sleep 30
-
-            # Check if the new process is still running
-            if ps -p "$NEW_PID" >/dev/null 2>&1; then
-              echo "✅ Application started successfully with PID: $NEW_PID"
-            else
-              echo "❌ Application failed to start. Checking logs..."
-              cat app.log 2>/dev/null || echo "No app.log created"
-              echo "Listing running Java processes..."
-              ps aux | grep '[j]ava' || true
-              echo "Checking memory usage..."
-              free -m
-              exit 1
-            fi
-
-            echo "Showing last 20 log lines:"
-            tail -n 20 app.log 2>/dev/null || echo "No app.log available"
-
-      - name: Debug server state on failure
-        if: failure()
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: root
-          password: ${{ secrets.DROPLET_PASSWORD }}
-          debug: true
-          script: |
-            echo "Listing running Java processes..."
-            ps aux | grep '[j]ava' || true
-            echo "Listing files in /root/app..."
-            ls -la /root/app || echo "Directory not found"
-            echo "Showing app.log contents..."
-            cat /root/app/app.log 2>/dev/null || echo "No app.log found"
-            echo "Checking disk space..."
-            df -h
-            echo "Checking memory usage..."
-            free -m
-            echo "Checking Kafka status..."
-            /usr/bin/kafka-topics --version 2>/dev/null || echo "Kafka not installed"
-            telnet localhost 9092 || echo "Kafka not reachable"
+            pkill -f '*.jar' || true
+            nohup java -jar *.jar > app.log 2>&1 &
