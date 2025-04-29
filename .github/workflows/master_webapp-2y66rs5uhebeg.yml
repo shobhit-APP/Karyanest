@@ -1,4 +1,4 @@
-name: Build and deploy JAR app to DigitalOcean Droplets
+name: Build and Deploy JAR App to DigitalOcean Droplet
 
 on:
   push:
@@ -21,22 +21,21 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up Java version
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
           distribution: 'temurin'
+          java-version: '21'
 
       - name: Build with Maven
-        run: mvn clean install
+        run: mvn clean install --file karyanestApplication/pom.xml
 
-      - name: Upload artifact for deployment job
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: java-app
@@ -50,15 +49,15 @@ jobs:
       name: 'Production'
 
     steps:
-      - name: Download artifact from build job
+      - name: Download JAR artifact
         uses: actions/download-artifact@v4
         with:
           name: java-app
 
-      - name: List files
+      - name: List files for verification
         run: ls -la
 
-      - name: Deploy to DigitalOcean
+      - name: Copy JAR to DigitalOcean Droplet
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.DROPLET_HOST }}
@@ -67,59 +66,43 @@ jobs:
           source: "*.jar"
           target: "/root/app/"
 
-      - name: Start application
+      - name: Restart Spring Boot JAR
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: root
           password: ${{ secrets.DROPLET_PASSWORD }}
           script: |
-            set -e  # Exit on any error
+            set -e
             cd /root/app
-            echo "Stopping old JAR process (if running)..."
-            PID=$(pgrep -f '\.jar' || true)  # Don't fail if no process is found
+            echo "Stopping existing JAR (if any)..."
+            PID=$(pgrep -f '\.jar' || true)
             if [ -n "$PID" ]; then
-              echo "Found running JAR process with PID: $PID"
-              kill -TERM $PID || true  # Send SIGTERM, ignore errors
-              echo "Waiting for process to terminate..."
-              for i in {1..30}; do
-                if ! ps -p $PID > /dev/null; then
-                  echo "✅ Old JAR process stopped."
-                  break
-                fi
-                sleep 1
-              done
+              echo "Killing PID $PID"
+              kill -TERM $PID || true
+              sleep 5
               if ps -p $PID > /dev/null; then
-                echo "⚠️ Process $PID still running, sending SIGKILL..."
                 kill -KILL $PID || true
               fi
-            else
-              echo "No running JAR process found."
             fi
 
-            # Find the JAR file (expecting exactly one)
             JAR_FILE=$(ls *.jar | head -n 1)
             if [ -z "$JAR_FILE" ]; then
-              echo "❌ No JAR file found in /root/app/"
+              echo "No JAR found!"
               exit 1
             fi
-            if [ $(ls *.jar | wc -l) -gt 1 ]; then
-              echo "⚠️ Multiple JAR files found, using $JAR_FILE"
-            fi
 
-            echo "Starting new JAR: $JAR_FILE..."
+            echo "Launching $JAR_FILE..."
             nohup java -jar "$JAR_FILE" > app.log 2>&1 &
             NEW_PID=$!
             sleep 10
-
-            # Check if the new process is still running
             if ps -p $NEW_PID > /dev/null; then
-              echo "✅ Application started successfully with PID: $NEW_PID"
+              echo "✅ App started successfully (PID: $NEW_PID)"
             else
-              echo "❌ Application failed to start. Checking logs..."
+              echo "❌ App failed. Logs:"
               tail -n 50 app.log
               exit 1
             fi
 
-            echo "Showing last 20 log lines:"
+            echo "📜 Last 20 lines of logs:"
             tail -n 20 app.log
