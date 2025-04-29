@@ -87,7 +87,7 @@ jobs:
             fi
             echo "Starting new JAR..."
             nohup java -jar *.jar > app.log 2>&1 &
-            sleep 5
+            sleep 10
             echo "Showing last 20 log lines:"
             tail -n 20 app.log
             echo "✅ Application started successfully."
