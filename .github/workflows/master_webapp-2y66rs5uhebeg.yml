@@ -120,6 +120,15 @@ jobs:
 
       - name: Start application
         uses: appleboy/ssh-action@master
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          FIREBASE_PRIVATE_KEY_ID: ${{ secrets.FIREBASE_PRIVATE_KEY_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          PERMISSION_SECRET_KEY: ${{ secrets.PERMISSION_SECRET_KEY }}
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: root
@@ -157,16 +166,15 @@ jobs:
             fi
 
             echo "Starting new JAR: $JAR_FILE..."
-            nohup java -jar "$JAR_FILE" \
-              -Dspring.datasource.password="${DB_PASSWORD}" \
-              -Dfirebase.client-email="${FIREBASE_CLIENT_EMAIL}" \
-              -Dfirebase.client-id="${FIREBASE_CLIENT_ID}" \
-              -Dfirebase.private-key="${FIREBASE_PRIVATE_KEY}" \
-              -Dfirebase.private-key-id="${FIREBASE_PRIVATE_KEY_ID}" \
-              -Dfirebase.project-id="${FIREBASE_PROJECT_ID}" \
-              -Dmail.password="${MAIL_PASSWORD}" \
-              -Dpermission.secret-key="${PERMISSION_SECRET_KEY}" \
-              > app.log 2>&1 &
+            export DB_PASSWORD="${DB_PASSWORD}"
+            export FIREBASE_CLIENT_EMAIL="${FIREBASE_CLIENT_EMAIL}"
+            export FIREBASE_CLIENT_ID="${FIREBASE_CLIENT_ID}"
+            export FIREBASE_PRIVATE_KEY="${FIREBASE_PRIVATE_KEY}"
+            export FIREBASE_PRIVATE_KEY_ID="${FIREBASE_PRIVATE_KEY_ID}"
+            export FIREBASE_PROJECT_ID="${FIREBASE_PROJECT_ID}"
+            export MAIL_PASSWORD="${MAIL_PASSWORD}"
+            export PERMISSION_SECRET_KEY="${PERMISSION_SECRET_KEY}"
+            nohup java -jar "$JAR_FILE" > app.log 2>&1 &
             NEW_PID=$!
             sleep 30
 
