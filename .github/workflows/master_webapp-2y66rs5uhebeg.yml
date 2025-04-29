@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 env:
-  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
   DB_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
   DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
   FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
@@ -166,7 +165,6 @@ jobs:
             fi
 
             echo "Starting new JAR: $JAR_FILE..."
-            export DB_PASSWORD="${DB_PASSWORD}"
             export FIREBASE_CLIENT_EMAIL="${FIREBASE_CLIENT_EMAIL}"
             export FIREBASE_CLIENT_ID="${FIREBASE_CLIENT_ID}"
             export FIREBASE_PRIVATE_KEY="${FIREBASE_PRIVATE_KEY}"
