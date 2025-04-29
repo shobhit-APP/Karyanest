@@ -27,9 +27,8 @@ public class UserHandleController {
     @Autowired
     private UserHandleService userHandleService;
 
-
-    @PostMapping("/block")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PostMapping("/block")
     public ResponseEntity<?> blockUser(@RequestBody Map<String, String> request) {
         Long userId = Long.valueOf(request.get("userId"));
         String flag = request.get("flag"); // get a flag from request
@@ -60,9 +59,8 @@ public class UserHandleController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
-
-    @GetMapping("/check-blocked")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/check-blocked")
     public ResponseEntity<?> checkBlockedUser(@RequestBody Map<String, String> request) {
         String key = request.get("key");
         String value = request.get("value");
@@ -85,9 +83,8 @@ public class UserHandleController {
                 "databaseStatus", dbStatus
         ));
     }
-
-    @GetMapping("/blocked-users/count")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/blocked-users/count")
     public ResponseEntity<?> getBlockedUsersCount() {
         long count = redisService.getBlockedUsersCount();
         Set<Long> blockedUsers = redisService.getAllBlockedUsers();
