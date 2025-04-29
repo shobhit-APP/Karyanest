@@ -8,7 +8,6 @@ on:
 
 env:
   DB_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
-  DROPLET_PASSWORD: ${{ secrets.DROPLET_PASSWORD }}
   FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
   FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
   FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
@@ -120,7 +119,6 @@ jobs:
       - name: Start application
         uses: appleboy/ssh-action@master
         env:
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
           FIREBASE_CLIENT_ID: ${{ secrets.FIREBASE_CLIENT_ID }}
           FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
