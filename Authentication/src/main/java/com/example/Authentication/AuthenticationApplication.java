@@ -6,8 +6,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 
-@SpringBootApplication(scanBasePackages = {"com.example.rbac"})
-@ComponentScan(basePackages = {"com.example.rbac","com.example.Authentication"})
+@SpringBootApplication
 @EnableJpaRepositories
 public class AuthenticationApplication {
 
