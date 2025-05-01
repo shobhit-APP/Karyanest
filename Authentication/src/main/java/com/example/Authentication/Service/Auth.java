@@ -484,21 +484,12 @@ public class Auth implements AuthService, AuthHelper {
     }
 
     public UserDTO getUserDetails(String key, String value) {
-         UserInternalUpdateEntity user = null;
-
-        switch (key.toLowerCase()) {
-            case "username":
-                user = userInternalUpdateRepository.findByUsername(value);
-                break;
-            case "email":
-                user = userInternalUpdateRepository.findByEmail(value);
-                break;
-            case "phonenumber":
-                user = userInternalUpdateRepository.findByPhoneNumber(value);
-                break;
-            default:
-                throw new CustomException("Invalid key: " + key);
-        }
+         UserInternalUpdateEntity user = switch (key.toLowerCase()) {
+             case "username" -> userInternalUpdateRepository.findByUsername(value);
+             case "email" -> userInternalUpdateRepository.findByEmail(value);
+             case "phonenumber" -> userInternalUpdateRepository.findByPhoneNumber(value);
+             default -> throw new CustomException("Invalid key: " + key);
+         };
 
         if (user == null) {
             throw new CustomException("User not found with " + key + ": " + value);
@@ -545,13 +536,11 @@ public class Auth implements AuthService, AuthHelper {
             if (updateDto.getLastLogin() != null) {
                 user.setLastLogin(updateDto.getLastLogin());
             }
-
             userInternalUpdateRepository.save(user);
         } else {
             throw new RuntimeException("User not found with ID: " + updateDto.getUserId());
         }
     }
-
     /**
      * Generate authentication response for a user
      *
