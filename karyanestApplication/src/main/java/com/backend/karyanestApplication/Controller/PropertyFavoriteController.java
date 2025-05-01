@@ -29,10 +29,10 @@ public class PropertyFavoriteController {
     }
 
     // Endpoint for getting user favorites
-    @GetMapping("/user/{id}")
+    @GetMapping("/user")
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('favorites_get')")
-    public ResponseEntity<List<PropertyDTO>> getUserFavorites(@PathVariable Long id) {
-        return ResponseEntity.ok(propertyFavoriteService.getUserFavorites(id));
+    public ResponseEntity<List<PropertyDTO>> getUserFavorites(HttpServletRequest jwt) {
+        return ResponseEntity.ok(propertyFavoriteService.getUserFavorites(jwt));
     }
 
     // Endpoint for removing favorites

@@ -52,8 +52,12 @@ public class PropertyFavoriteService {
     }
 
     @Transactional(readOnly = true)
-    public List<PropertyDTO> getUserFavorites(Long userId) {
-        List<PropertyFavorite> favorites = propertyFavoriteRepository.findByUserId(userId);
+    public List<PropertyDTO> getUserFavorites(HttpServletRequest jwt) {
+        JWTUserDTO jwtuser = (JWTUserDTO) jwt.getAttribute("user");
+        if (jwtuser == null) {
+            throw new IllegalArgumentException("User not found");
+        }
+        List<PropertyFavorite> favorites = propertyFavoriteRepository.findByUserId(jwtuser.getUserId());
         return favorites.stream().map(favorite -> new PropertyDTO(favorite.getProperty())).collect(Collectors.toList());
     }
     @Transactional
