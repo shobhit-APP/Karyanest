@@ -50,7 +50,7 @@ public class LeadNoteController {
     @Operation(summary = "Get notes by lead ID", description = "Retrieve all notes for a specific lead")
     @GetMapping("/note/{id}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_AGENT') or hasAuthority('leadNote_getNoteByLeadID')")
-    public ResponseEntity<List<LeadNoteResponseDTO>> getNotesByLeadId(@PathVariable("leadId") Long leadId) {
+    public ResponseEntity<List<LeadNoteResponseDTO>> getNotesByLeadId(@PathVariable("id") Long leadId) {
         try {
             List<LeadNote> notes = leadNoteService.getAllNotesByleadId(leadId);
             if (notes.isEmpty()) {
@@ -64,7 +64,7 @@ public class LeadNoteController {
 
     @Operation(summary = "Get lead note by note ID", description = "Retrieve a specific lead note by its ID")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_AGENT') or hasAuthority('leadNote_getLeadNoteByID)")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_AGENT') or hasAuthority('leadNote_getLeadNoteByID')")
     public ResponseEntity<LeadNoteResponseDTO> getLeadNoteById(@PathVariable("id") Long noteId) {
         try {
             Optional<LeadNote> note = leadNoteService.getLeadNoteById(noteId);
@@ -159,7 +159,7 @@ public class LeadNoteController {
     }
     @Operation(summary = "Delete lead note", description = "Delete a lead note by its ID")
     @DeleteMapping("/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leadNote_delete)")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leadNote_delete'))")
     public ResponseEntity<String> deleteLeadNote(@PathVariable("id") Long noteId) {
         try {
             // Check if the note exists

@@ -71,7 +71,7 @@ public class LeadsController {
             )
     })
     @PostMapping("/create")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leads_create')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leads_create'))")
     public ResponseEntity<?> createLead(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "Lead information to create a new record",
@@ -115,7 +115,7 @@ public class LeadsController {
             )
     })
     @PostMapping("{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_assign')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_assign'))")
     public ResponseEntity<?> assignAgent(
             @Parameter(description = "ID of the lead to assign") @PathVariable Long id,
             @Parameter(description = "Username of the agent to be assigned") @RequestParam String agentUsername,
@@ -163,7 +163,7 @@ public class LeadsController {
             )
     })
     @GetMapping("/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getLeadById')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getLeadById'))")
     public ResponseEntity<?> getLeadById(@Parameter(description = "ID of the lead to retrieve") @PathVariable Long id) {
         try {
             Lead lead = leadService.getLeadById(id);
@@ -218,7 +218,7 @@ public class LeadsController {
             )
     })
     @GetMapping("/myLeads")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getMyLead')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getMyLead'))")
     public ResponseEntity<?> getMyLeads(HttpServletRequest request) {
         try {
             // Extract current user from JWT
@@ -276,7 +276,7 @@ public class LeadsController {
             )
     })
     @GetMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leads_getAll')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leads_getAll'))")
     public ResponseEntity<?> getAllLeads() {
         try {
             // Fetch all leads from the database
@@ -324,7 +324,7 @@ public class LeadsController {
             )
     })
     @PutMapping("{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_Update')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_Update'))")
     public ResponseEntity<?> updateLead(
             @Parameter(description = "ID of the lead to update") @PathVariable Long id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -372,7 +372,7 @@ public class LeadsController {
             )
     })
     @DeleteMapping("{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_delete')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_delete'))")
     public ResponseEntity<?> deleteLead(@Parameter(description = "ID of the lead to archive") @PathVariable Long id) {
         try {
             leadService.archiveLead(id); // Using a method name that better represents soft delete
@@ -387,7 +387,7 @@ public class LeadsController {
     }
 
     @GetMapping("/getLeadsByPropertyId/{id}")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getByPropertyId')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getByPropertyId'))")
     public ResponseEntity<?> getLeadsByPropertyId(
             @Parameter(description = "Property ID to fetch leads") @PathVariable Long id) {
         try {

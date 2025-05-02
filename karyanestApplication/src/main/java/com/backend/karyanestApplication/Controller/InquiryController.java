@@ -17,7 +17,7 @@ public class InquiryController {
 
     // Create inquiry - Admin, User, or Agent can create an inquiry
     @PostMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('inquiries_create')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('inquiries_create')")
     public ResponseEntity<InquiryResponseDTO> createInquiry(@RequestBody InquiryRequestDTO requestDTO) {
         InquiryResponseDTO response = inquiryService.createInquiry(requestDTO);
         return ResponseEntity.ok(response);
@@ -25,7 +25,8 @@ public class InquiryController {
 
     // Get all inquiries - Admin, User, or Agent can view all inquiries
     @GetMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN') and hasAuthority('inquiries_viewsAll'))")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('inquiries_viewsAll')")
+
     public ResponseEntity<List<InquiryResponseDTO>> getAllInquiries() {
         return ResponseEntity.ok(inquiryService.getAllInquiries());
     }

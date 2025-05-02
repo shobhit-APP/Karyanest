@@ -22,7 +22,7 @@ public class AddressesController {
     private AddressesService addressesService;
 
     @Operation(summary = "Get All Addresses", description = "Fetches a list of all addresses.")
-    @PreAuthorize("hasRole('ROLE_ADMIN') and hasAuthority('address_getAll')")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('address_getAll')")
     @GetMapping
     public List<Addresses> getAllAddresses() {
         return addressesService.getAllAddresses();
@@ -37,35 +37,35 @@ public class AddressesController {
     }
 
     @Operation(summary = "Get Addresses by City", description = "Fetches addresses based on city name.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_city')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_city'))")
     @GetMapping("/city")
     public List<Addresses> getAddressesByCity(@RequestParam String city) {
         return addressesService.getAddressesByCity(city);
     }
 
     @Operation(summary = "Get Addresses by Area", description = "Fetches addresses based on area name.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or  hasAuthority('address_area')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_area'))")
     @GetMapping("/area")
     public List<Addresses> getAddressesByArea(@RequestParam String area) {
         return addressesService.getAddressesByArea(area);
     }
 
     @Operation(summary = "Get Addresses by District", description = "Fetches addresses based on district name.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_district')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_district'))")
     @GetMapping("/district")
     public List<Addresses> getAddressesByDistrict(@RequestParam String district) {
         return addressesService.getAddressesByDistrict(district);
     }
 
     @Operation(summary = "Get Addresses by State", description = "Fetches addresses based on state name.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_state')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_state'))")
     @GetMapping("/state")
     public List<Addresses> getAddressesByState(@RequestParam String state) {
         return addressesService.getAddressesByState(state);
     }
 
     @Operation(summary = "Get Addresses by Pincode", description = "Fetches addresses based on pincode.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_pincode')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('address_pincode'))")
     @GetMapping("/pincode")
     public List<Addresses> getAddressesByPincode(@RequestParam String pincode) {
         return addressesService.getAddressesByPincode(pincode);
@@ -95,7 +95,7 @@ public class AddressesController {
     }
 
     @Operation(summary = "Search Addresses by Keyword", description = "Fetches addresses based on a search keyword.")
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('addresses_search')")
+    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('addresses_search'))")
     @GetMapping("/search")
     public ResponseEntity<List<AddressResponseDTO>> searchAddressesByKeyword(@RequestParam String keyword) {
         List<AddressResponseDTO> addresses = addressesService.getSearchAddressesByKeyword(keyword);
