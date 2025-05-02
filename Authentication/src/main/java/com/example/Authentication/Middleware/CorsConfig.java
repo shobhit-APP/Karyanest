@@ -21,13 +21,7 @@ public class CorsConfig implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
         HttpServletRequest request = (HttpServletRequest) req;
 
-        // Allow requests from frontend (React on port 3000)
-        String origin = request.getHeader("Origin");
-        if (origin != null && origin.startsWith("http://localhost:")) {
-            response.setHeader("Access-Control-Allow-Origin", origin);
-        } else if (origin != null && origin.equals("https://nestaro.in")) {
-            response.setHeader("Access-Control-Allow-Origin", origin);
-        }
+        response.setHeader("Access-Control-Allow-Origin", request.getHeader("Origin"));
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "*");
         response.setHeader("Access-Control-Allow-Credentials", "true");
