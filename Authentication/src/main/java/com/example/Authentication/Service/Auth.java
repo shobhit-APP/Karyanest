@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 @Service
 public class Auth implements AuthService, AuthHelper {
     // Configuration constants
-    private static final String VERIFICATION_LINK_TEMPLATE = "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/auth/verify?email=";
+    private static final String VERIFICATION_LINK_TEMPLATE = "https://nestaro.in/v1/auth/verify?email=";
 
     // Dependencies
     private final AuthenticationManager authenticationManager;
@@ -320,12 +320,12 @@ public class Auth implements AuthService, AuthHelper {
             String otp = generateAndStoreOtp(user.getPhoneNumber());
             // Here you would integrate with SMS service to send the OTP
             verificationType = "SMS";
-            verificationUrl = "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/verify-user-otp";
+            verificationUrl = "https://nestaro.in/v1/verify-user-otp";
         } else {
             // Email verification scenario
             String token = GenerateToken(user.getUserId(), user.getEmail());
             verificationType = "email";
-            verificationUrl = "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/verify?email=" +
+            verificationUrl = "https://nestaro.in/v1/verify?email=" +
                     user.getEmail() + "&token=" + token;
         }
 
