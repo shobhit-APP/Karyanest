@@ -29,6 +29,9 @@ public class PropertyResource {
     @Column(name = "url", length = 255,nullable = false)
     private String url;
 
+    @Column(name = "file_id")
+    private String fileId;
+
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 

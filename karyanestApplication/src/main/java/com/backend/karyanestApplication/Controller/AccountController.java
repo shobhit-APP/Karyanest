@@ -1,5 +1,6 @@
 package com.backend.karyanestApplication.Controller;
 
+import com.backblaze.b2.client.exceptions.B2Exception;
 import com.example.Authentication.Controller.AuthController;
 import com.backend.karyanestApplication.DTO.UserPreferencesDTO;
 import com.backend.karyanestApplication.DTO.UserRegistrationDTO;
@@ -9,8 +10,11 @@ import com.backend.karyanestApplication.Model.User;
 import com.backend.karyanestApplication.Service.UserService;
 import com.example.Authentication.Component.UserContext;
 import com.example.Authentication.DTO.AuthResponseDTO;
+import com.example.Authentication.DTO.JWTUserDTO;
 import com.example.Authentication.DTO.UserDTO;
 import com.example.Authentication.Service.Auth;
+import com.example.storageService.Model.B2FileVersion;
+import com.example.storageService.Service.B2FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +26,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,6 +44,10 @@ public class AccountController {
     private Auth auth;
     @Autowired
     private UserContext userContext;
+
+    @Autowired
+    private B2FileService b2FileService;
+
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(LeadsController.class);
     public AccountController(UserService userService) {
@@ -67,7 +76,7 @@ public class AccountController {
     @GetMapping("{id}")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_getByID')")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable Long id) {
-       UserResponseDTO user = userService.getUserById(id);
+        UserResponseDTO user = userService.getUserById(id);
         return ResponseEntity.ok(user);
     }
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('users_getCurrent')")
@@ -118,7 +127,7 @@ public class AccountController {
         responseBody.put("user", userDTO);            // First item
         responseBody.put("role", authResponse.getRole());
 
-      // ✅ Final Response return karein
+        // ✅ Final Response return karein
         return ResponseEntity.ok(responseBody);
     }
     /**
@@ -211,5 +220,50 @@ public class AccountController {
             return ResponseEntity.ok(userResponseDTO);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request. Provide a valid action or preferences.");
+    }
+
+    @Operation(summary = "Upload user avatar", description = "Upload a new avatar for the authenticated user")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER', 'ROLE_AGENT') or hasAuthority('user_update')")
+    @PostMapping("/avatar")
+    public ResponseEntity<Map<String, String>> uploadUserAvatar(
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
+        try {
+            JWTUserDTO jwtuser = (JWTUserDTO) request.getAttribute("user");
+            User user = userService.findById(jwtuser.getUserId());
+
+            if (file.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "No file provided"));
+            }
+            // Delete old avatar if it exists
+            String oldAvatarUrl = user.getProfilePicture();
+            String oldAvatarFileId = user.getProfilePictureFileId();
+            if (oldAvatarUrl != null && oldAvatarFileId != null) {
+                String fileName = oldAvatarUrl.substring(oldAvatarUrl.indexOf("nestero-rootfolder/") + "nestero-rootfolder/".length());
+                try {
+                    b2FileService.deleteFile(fileName, oldAvatarFileId);
+                } catch (B2Exception e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of("error", "Failed to delete old avatar: " + e.getMessage()));
+                }
+            }
+
+            // Upload new avatar
+            B2FileVersion fileVersion = b2FileService.uploadAvatarFile(
+                    file.getOriginalFilename(),
+                    file.getInputStream(),
+                    file.getSize(),
+                    file.getContentType(),
+                    user.getId()
+            );
+
+            userService.updateAvatar(user.getId(), fileVersion.getFileName(), fileVersion.getFileId());
+
+            return ResponseEntity.ok(Map.of("message", "Avatar uploaded: " + fileVersion.getFileName()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Upload failed: " + e.getMessage()));
+        }
     }
 }

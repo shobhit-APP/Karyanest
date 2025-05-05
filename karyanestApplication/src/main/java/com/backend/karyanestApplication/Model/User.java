@@ -44,6 +44,9 @@ public class User {
     @Column(name = "profile_picture", length = 255)
     private String profilePicture;
 
+    @Column(name = "profile_picture_file_id", length = 255) // Added for Backblaze B2 file ID
+    private String profilePictureFileId;
+
     @Column(name = "address", length = 255)
     private String address;
 

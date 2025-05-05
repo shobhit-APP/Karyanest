@@ -15,6 +15,7 @@
         <module>karyanestApplication</module>
         <module>rbac</module>
         <module>notification</module>
+        <module>storageService</module>
     </modules>
 
     <properties>

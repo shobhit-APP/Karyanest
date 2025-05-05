@@ -450,7 +450,7 @@ public class UserService {
     }
     @Transactional
     public User findByPhoneNumber(String phoneNumber) {
-         return userRepo.findByPhoneNumber(phoneNumber);
+        return userRepo.findByPhoneNumber(phoneNumber);
     }
     public ResponseEntity<?> notifyUser(User user) {
         return sendVerificationLinkAndResponse(user);
@@ -469,12 +469,12 @@ public class UserService {
             // Resend verification OTP via SMS
             //        SMS_Service.sendSMS(user.getPhoneNumber());
             verificationType = "SMS";
-            verificationUrl = "https://nestaro.in/v1/verify-user-otp";
+            verificationUrl = "http://karynest-real-state.azurewebsites.net/v1/verify-user-otp";
         } else {
             // Email verification scenario
             String token = auth.GenerateToken(user.getId(),user.getEmail());
             verificationType = "email";
-            verificationUrl = "https://nestaro.in/v1/verify?email=" +
+            verificationUrl = "http://karynest-real-state.azurewebsites.net/v1/verify?email=" +
                     user.getEmail() + "&token=" + token;
         }
 
@@ -520,7 +520,7 @@ public class UserService {
         return mapToDTO(updatedUser);
     }
     public List<User> getParentUser(Long parentId) {
-      return  userRepo.findByParentCode(parentId);
+        return  userRepo.findByParentCode(parentId);
     }
     public String referCodeGenerater() {
         StringBuilder referCode = new StringBuilder(6);
@@ -536,5 +536,12 @@ public class UserService {
         }
 
         return referCode.toString();
+    }
+    public User updateAvatar(Long userId, String avatarUrl, String avatarFileId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setProfilePicture(avatarUrl);
+        user.setProfilePictureFileId(avatarFileId);
+        return userRepo.save(user);
     }
 }
