@@ -37,7 +37,7 @@ public class Property {
     private Status status; // Available, Sold, Pending, Rented
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "listing_type", nullable = false)
+    @Column(name = "listing_type")
     private ListingType listingType; // For Sale, For Rent, Lease
 
     @Column(nullable = false, precision = 15, scale = 2)
@@ -53,13 +53,13 @@ public class Property {
     @Column(name = "area_unit", nullable = false)
     private AreaUnit areaUnit; // Sq. Ft, Sq. Yards, Acres, etc.
 
-    @Column(nullable = false)
+    @Column()
     private Integer bedrooms;
 
-    @Column(nullable = false)
+    @Column()
     private Integer bathrooms;
 
-    @Column(nullable = false)
+    @Column()
     private Integer balconies;
 
     @Enumerated(EnumType.STRING)
@@ -73,13 +73,13 @@ public class Property {
     private Integer totalFloors; // Total floors in the building
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column()
     private OwnershipType ownershipType; // Freehold, Leasehold, Cooperative
 
     private String ageOfProperty; // Property age (e.g., "5 years")
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column()
     private ConstructionStatus constructionStatus; // Under Construction, Ready to Move
 
     @Enumerated(EnumType.STRING)
@@ -159,7 +159,7 @@ public class Property {
     }
 
     public enum Status {
-        AVAILABLE, SOLD, PENDING, RENTED,DELETED
+        DRAFT, AVAILABLE, SOLD, PENDING, RENTED, DELETED
     }
 
     public enum ListingType {

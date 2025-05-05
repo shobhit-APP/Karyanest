@@ -1,5 +1,6 @@
 
 package com.backend.karyanestApplication.Service;
+import com.backend.karyanestApplication.DTO.PropertyCreateDTO;
 import com.backend.karyanestApplication.DTO.PropertyResourceDTO;
 import com.backend.karyanestApplication.DTO.PropertyDTO;
 import com.backend.karyanestApplication.DTO.PropertySearchRequestDTO;
@@ -46,25 +47,45 @@ public class PropertyService {
         if (user == null) {
             throw new CustomException("User not found In The Your Record So we Can Not Add The Property");
         }
-
-        // ✅ Create new Property object
         Property property = new Property();
-
-        // ✅ Use helper method to map fields
         mapPropertyFields(property, propertyDTO);
-
-        // ✅ Associate property with user
         property.setUser(user);
-
-        // ✅ Save property first
         Property savedProperty = propertyRepository.save(property);
-
-        // ✅ Save property resources if provided
         savePropertyResources(savedProperty, propertyDTO.getPropertyResources());
-
-        // ✅ Convert saved Property to Response DTO
         return convertToResponseDTO(savedProperty);
     }
+    /**
+     * Creates or updates a property draft with partial data.
+     */
+    public PropertyDTO saveOrUpdateDraft(PropertyCreateDTO propertyDTO, String username) {
+        User user = userRepo.findByUsername(username);
+        if (user == null) {
+            throw new CustomException("User not found In The Your Record So we Can Not Add The Property");
+        }
+        Property property;
+        Long draftId = propertyDTO.getDraftId();
+
+        if (draftId != null) {
+            // Update existing draft
+            property = propertyRepository.findById(draftId)
+                    .orElseThrow(() -> new RuntimeException("Draft not found with id: " + draftId));
+            updateNonNullFields(propertyDTO, property);
+        } else {
+            // Create new draft
+            property = new Property();
+            mapPropertyDTOToEntity(propertyDTO, property);
+            property.setStatus(Property.Status.DRAFT);
+            property.setCreatedAt(LocalDateTime.now());
+            property.setUser(user);
+            property.setCurrency("INR");
+            property.setCountry("India");
+        }
+
+        property.setUpdatedAt(LocalDateTime.now());
+        Property savedProperty = propertyRepository.save(property);
+        return convertToResponseDTO(savedProperty);
+    }
+
     /**
      * Helper method to map PropertyRequestDTO fields to Property entity.
      */
@@ -109,7 +130,6 @@ public class PropertyService {
      * Helper method to save property resources.
      */
     private void savePropertyResources(Property property, List<PropertyResourceDTO> resourceDTOs) {
-
         if (resourceDTOs != null && !resourceDTOs.isEmpty()) {
             for (PropertyResourceDTO resourceDTO : resourceDTOs) {
                 PropertyResource resource = new PropertyResource();
@@ -117,6 +137,7 @@ public class PropertyService {
                 resource.setResourceType(resourceDTO.getResourceType());
                 resource.setTitle(resourceDTO.getTitle());
                 resource.setUrl(resourceDTO.getUrl());
+                resource.setFileId(resourceDTO.getFileId());
                 resource.setDescription(resourceDTO.getDescription());
 
                 propertyResourcesRepository.save(resource);
@@ -194,7 +215,7 @@ public class PropertyService {
     public PropertyDTO updatePropertyPriceOnly(BigDecimal newPrice, Property property, BigDecimal oldPrice, User user) {
         property.setPrice(newPrice);
         Property property1 = propertyRepository.save(property);
-         PropertyDTO updatedPropertyDTO = convertToResponseDTO(property1);
+        PropertyDTO updatedPropertyDTO = convertToResponseDTO(property1);
         // Record price change
         PropertyPriceChange priceChange = new PropertyPriceChange();
         priceChange.setProperty(property);
@@ -232,6 +253,7 @@ public class PropertyService {
         resource.setResourceType(resourceDTO.getResourceType());
         resource.setTitle(resourceDTO.getTitle());
         resource.setUrl(resourceDTO.getUrl());
+        resource.setFileId(resourceDTO.getFileId());
         resource.setDescription(resourceDTO.getDescription());
 
         // Save the resource
@@ -301,6 +323,7 @@ public class PropertyService {
         if (requestDTO.getLongitude() != null) property.setLongitude(requestDTO.getLongitude());
         if (requestDTO.getVerificationStatus() != null) property.setVerificationStatus(requestDTO.getVerificationStatus());
     }
+
     @Transactional
     public PropertyResourceDTO updateOrCreatePropertyResource(Long propertyId, Long resourceId, PropertyResourceDTO resourceDTO) {
         // ✅ Check if property exists
@@ -317,6 +340,7 @@ public class PropertyService {
             newResource.setResourceType(resourceDTO.getResourceType());
             newResource.setTitle(resourceDTO.getTitle());
             newResource.setUrl(resourceDTO.getUrl());
+            newResource.setFileId(resourceDTO.getFileId());
             newResource.setDescription(resourceDTO.getDescription());
 
             PropertyResource savedResource = propertyResourcesRepository.save(newResource);
@@ -338,21 +362,95 @@ public class PropertyService {
         if (resourceDTO.getUrl() != null) {
             existingResource.setUrl(resourceDTO.getUrl());
         }
+        if (resourceDTO.getFileId() != null) {
+            existingResource.setFileId(resourceDTO.getFileId());
+        }
         if (resourceDTO.getDescription() != null) {
             existingResource.setDescription(resourceDTO.getDescription());
         }
-
         // ✅ Save updated resource
         PropertyResource updatedResource = propertyResourcesRepository.save(existingResource);
         return convertToResourceResponseDTO(updatedResource);
     }
 
+    @Transactional
+    public PropertyResourceDTO getPropertyResourceById(Long propertyId, Long resourceId) {
+        PropertyResource resource = propertyResourcesRepository.findByIdAndPropertyId(resourceId, propertyId)
+                .orElseThrow(() -> new CustomException("Resource not found for property id: " + propertyId));
+        return new PropertyResourceDTO(resource);
+    }
+
+    @Transactional
+    public List<PropertyResourceDTO> getPropertyResourcesByPropertyId(Long propertyId) {
+        List<PropertyResource> resources = propertyResourcesRepository.findByPropertyId(propertyId);
+        return resources.stream()
+                .map(PropertyResourceDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void deletePropertyResource(Long propertyId, Long resourceId) {
+        PropertyResource resource = propertyResourcesRepository.findByIdAndPropertyId(resourceId, propertyId)
+                .orElseThrow(() -> new CustomException("Resource not found for property id: " + propertyId));
+        propertyResourcesRepository.delete(resource);
+    }
 
     private PropertyResourceDTO convertToResourceResponseDTO(PropertyResource updatedResource) {
         // Map property resources
         return new PropertyResourceDTO(updatedResource);
     }
 
-
+    private void updateNonNullFields(PropertyCreateDTO dto, Property property) {
+        if(dto.getDraftId() != null) property.setId(dto.getDraftId());
+        if (dto.getTitle() != null) property.setTitle(dto.getTitle());
+        if (dto.getPropertyType() != null) property.setPropertyType(dto.getPropertyType());
+        if (dto.getLocationAddress() != null) property.setLocationAddress(dto.getLocationAddress());
+        if (dto.getCity() != null) property.setCity(dto.getCity());
+        if (dto.getState() != null) property.setState(dto.getState());
+        if (dto.getCountry() != null) property.setCountry(dto.getCountry());
+        if (dto.getPincode() != null) property.setPincode(dto.getPincode());
+        if (dto.getPrice() != null) property.setPrice(dto.getPrice());
+        if (dto.getAreaSize() != null) property.setAreaSize(dto.getAreaSize());
+        if (dto.getAreaUnit() != null) property.setAreaUnit(dto.getAreaUnit());
+        if (dto.getBedrooms() != null) property.setBedrooms(dto.getBedrooms());
+        if (dto.getBathrooms() != null) property.setBathrooms(dto.getBathrooms());
+        if (dto.getDescription() != null) property.setDescription(dto.getDescription());
+        if (dto.getAgeOfProperty() != null) property.setAgeOfProperty(dto.getAgeOfProperty());
+        if (dto.getFloorNumber() != null) property.setFloorNumber(dto.getFloorNumber());
+        if (dto.getTotalFloors() != null) property.setTotalFloors(dto.getTotalFloors());
+        if (dto.getFurnishedStatus() != null) property.setFurnishedStatus(dto.getFurnishedStatus());
+        if (dto.getFacingDirection() != null) property.setFacingDirection(dto.getFacingDirection());
+        if (dto.getAmenities() != null) property.setAmenities(dto.getAmenities());
+        if (dto.getNearbyLandmarks() != null) property.setNearbyLandmarks(dto.getNearbyLandmarks());
+        if (dto.getOwnershipType() != null) property.setOwnershipType(dto.getOwnershipType());
+        if (dto.getConstructionStatus() != null) property.setConstructionStatus(dto.getConstructionStatus());
+    }
+    /**
+     * Maps PropertyCreateDTO to Property entity for new drafts.
+     */
+    private void mapPropertyDTOToEntity(PropertyCreateDTO dto, Property property) {
+        if (dto.getTitle() != null) property.setTitle(dto.getTitle());
+        if (dto.getPropertyType() != null) property.setPropertyType(dto.getPropertyType());
+        if (dto.getLocationAddress() != null) property.setLocationAddress(dto.getLocationAddress());
+        if (dto.getCity() != null) property.setCity(dto.getCity());
+        if (dto.getState() != null) property.setState(dto.getState());
+        if (dto.getCountry() != null) property.setCountry(dto.getCountry());
+        if (dto.getPincode() != null) property.setPincode(dto.getPincode());
+        if (dto.getPrice() != null) property.setPrice(dto.getPrice());
+        if (dto.getAreaSize() != null) property.setAreaSize(dto.getAreaSize());
+        if (dto.getAreaUnit() != null) property.setAreaUnit(dto.getAreaUnit());
+        if (dto.getBedrooms() != null) property.setBedrooms(dto.getBedrooms());
+        if (dto.getBathrooms() != null) property.setBathrooms(dto.getBathrooms());
+        if (dto.getDescription() != null) property.setDescription(dto.getDescription());
+        if (dto.getAgeOfProperty() != null) property.setAgeOfProperty(dto.getAgeOfProperty());
+        if (dto.getFloorNumber() != null) property.setFloorNumber(dto.getFloorNumber());
+        if (dto.getTotalFloors() != null) property.setTotalFloors(dto.getTotalFloors());
+        if (dto.getFurnishedStatus() != null) property.setFurnishedStatus(dto.getFurnishedStatus());
+        if (dto.getFacingDirection() != null) property.setFacingDirection(dto.getFacingDirection());
+        if (dto.getAmenities() != null) property.setAmenities(dto.getAmenities());
+        if (dto.getNearbyLandmarks() != null) property.setNearbyLandmarks(dto.getNearbyLandmarks());
+        if (dto.getOwnershipType() != null) property.setOwnershipType(dto.getOwnershipType());
+        if (dto.getConstructionStatus() != null) property.setConstructionStatus(dto.getConstructionStatus());
+    }
 }
 

@@ -15,5 +15,7 @@
     <file url="file://$PROJECT_DIR$/rbac/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/storageService/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/storageService/src/main/resources" charset="UTF-8" />
   </component>
 </project>

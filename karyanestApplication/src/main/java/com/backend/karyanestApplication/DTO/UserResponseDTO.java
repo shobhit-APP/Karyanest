@@ -15,13 +15,14 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class UserResponseDTO {
-    
+
     private Long id;
     private String username;
     private String fullName;
     private String email;
     private String phoneNumber;
     private String profilePicture;
+    private String profilePictureFileId; // Added for Backblaze B2 file ID
     private String address;
     private String city;
     private String state;
@@ -30,7 +31,7 @@ public class UserResponseDTO {
     private Long parent_code;
     private String referCode;
     private String preferences;
-    
+
     private User.VerificationStatus verificationStatus;
     private User.VerificationMethod verificationMethod;
     private User.UserStatus status;

@@ -1,5 +1,7 @@
 package com.backend.karyanestApplication.Controller;
 
+import com.backblaze.b2.client.exceptions.B2Exception;
+import com.backend.karyanestApplication.DTO.PropertyCreateDTO;
 import com.example.Authentication.DTO.JWTUserDTO;
 import com.backend.karyanestApplication.DTO.PropertyDTO;
 import com.backend.karyanestApplication.DTO.PropertyResourceDTO;
@@ -11,12 +13,16 @@ import com.backend.karyanestApplication.Service.PropertyService;
 import com.backend.karyanestApplication.Service.UserPropertyVisitService;
 import com.backend.karyanestApplication.Service.UserService;
 import com.example.Authentication.Component.UserContext;
+import com.example.storageService.Model.B2FileVersion;
+import com.example.storageService.Service.B2FileService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.io.Resource;
+import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -46,6 +52,8 @@ public class PropertyController {
     private UserPropertyVisitService userPropertyVisitService;
     @Autowired
     private PropertyPriceChangeRepository priceChangeRepository;
+    @Autowired
+    private B2FileService b2FileService;
 
     /**
      * Retrieves all properties in the system.
@@ -91,12 +99,12 @@ public class PropertyController {
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_create')")
     @PostMapping
     public ResponseEntity<PropertyDTO> addProperty(
-            @RequestBody PropertyDTO propertyDTO,
-          HttpServletRequest request) {
+            @RequestBody PropertyCreateDTO propertyDTO,
+            HttpServletRequest request) {
         String Token = userContext.extractToken(request);
         String Username = jwtUtil.extractUsername(Token);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(propertyService.addProperty(propertyDTO, Username));
+                .body(propertyService.saveOrUpdateDraft(propertyDTO, Username));
     }
 
     /**
@@ -112,6 +120,91 @@ public class PropertyController {
             @PathVariable Long id,
             @RequestBody PropertyDTO propertyDTO) {
         return ResponseEntity.ok(propertyService.updateProperty(id, propertyDTO));
+    }
+
+
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addResource')")
+    @PostMapping("/{id}/upload-resource")
+    public ResponseEntity<List<PropertyResourceDTO>> uploadPropertyResource(
+            @PathVariable Long id,
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam(value = "title", required = false) PropertyResource.ResourceTitle title,
+            @RequestParam(value = "description", required = false) String description) {
+        try {
+            List<PropertyResourceDTO> savedResources = new ArrayList<>();
+            for (MultipartFile file : files) {
+                B2FileVersion fileVersion = b2FileService.uploadPropertyFile(
+                        file.getOriginalFilename(),
+                        file.getInputStream(),
+                        file.getSize(),
+                        file.getContentType(),
+                        id
+                );
+
+                PropertyResourceDTO resourceDTO = new PropertyResourceDTO();
+                resourceDTO.setPropertyId(id);
+                resourceDTO.setResourceType(PropertyResource.ResourceType.Image);
+                resourceDTO.setTitle(title != null ? title : PropertyResource.ResourceTitle.Front);
+                resourceDTO.setUrl(fileVersion.getFileName());
+                resourceDTO.setFileId(fileVersion.getFileId());
+                resourceDTO.setDescription(description);
+
+                PropertyResourceDTO savedResource = propertyService.addPropertyResource(id, resourceDTO);
+                savedResources.add(savedResource);
+            }
+            if (savedResources.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Collections.emptyList());
+            }
+            return ResponseEntity.ok(savedResources);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList());
+        }
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_deleteResource')")
+    @DeleteMapping("/{id}/delete-resource/{resourceId}")
+    public ResponseEntity<Map<String , String>> deletePropertyResource(
+            @PathVariable Long id,
+            @PathVariable Long resourceId) {
+        try {
+
+            PropertyResourceDTO resourceDTO = propertyService.getPropertyResourceById(id, resourceId);
+            if (resourceDTO == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Resource not found"));
+            }
+            String fullPath = resourceDTO.getUrl();
+            String fileName = fullPath.substring(fullPath.indexOf("nestero-rootfolder/") + "nestero-rootfolder/".length());
+
+            b2FileService.deleteFile(
+                    fileName,
+                    resourceDTO.getFileId()
+            );
+
+            propertyService.deletePropertyResource(id, resourceId);
+
+            return ResponseEntity.ok(Map.of("message", "Resource deleted: " + resourceDTO.getUrl()));
+        } catch (B2Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Delete failed: " + e.getMessage()));
+        }
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getResources')")
+    @GetMapping("/{id}/resources")
+    public ResponseEntity<List<PropertyResourceDTO>> getPropertyResources(@PathVariable Long id) {
+        try {
+            List<PropertyResourceDTO> resources = propertyService.getPropertyResourcesByPropertyId(id);
+            if (resources.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(resources);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.emptyList());
+        }
     }
 
     /**
@@ -184,25 +277,25 @@ public class PropertyController {
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_currentUser')")
     @GetMapping("/currentUserProperty")
     public ResponseEntity<?> getAllProps(HttpServletRequest request) {
-       
-            JWTUserDTO user = (JWTUserDTO) request.getAttribute("user");
-            // Fetch properties by user ID
-            List<PropertyDTO> properties;
-            try {
-                properties = propertyService.getPropertiesByUserId(user.getUserId());
-                if (properties.isEmpty()) {
-                    // Return empty list with 200 status if no properties found
-                    return ResponseEntity.ok(properties);
-                }
-            } catch (Exception e) {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(Map.of("error", "Error retrieving properties", "details", e.getMessage()));
-            }
 
-            // Return properties with success status
-            // recordPropertyVisit(request, properties);
-            return ResponseEntity.ok(properties);
-       
+        JWTUserDTO user = (JWTUserDTO) request.getAttribute("user");
+        // Fetch properties by user ID
+        List<PropertyDTO> properties;
+        try {
+            properties = propertyService.getPropertiesByUserId(user.getUserId());
+            if (properties.isEmpty()) {
+                // Return empty list with 200 status if no properties found
+                return ResponseEntity.ok(properties);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error retrieving properties", "details", e.getMessage()));
+        }
+
+        // Return properties with success status
+        // recordPropertyVisit(request, properties);
+        return ResponseEntity.ok(properties);
+
     }
 
     /**
@@ -276,7 +369,7 @@ public class PropertyController {
             HttpServletRequest request) {
         try {
             JWTUserDTO user = (JWTUserDTO) request.getAttribute("user");
-            
+
             // Get optional visit data
             String deviceInfo = visitData.containsKey("deviceInfo") ?
                     visitData.get("deviceInfo").toString() : null;
@@ -367,7 +460,7 @@ public class PropertyController {
                         item.put("old_price", change.getOldPrice());
                         item.put("property_id", change.getProperty().getId());
                         item.put("Price changed By",change.getUser().getFullName());
-                         // Just get the ID
+                        // Just get the ID
                         return item;
                     })
                     .collect(Collectors.toList());
