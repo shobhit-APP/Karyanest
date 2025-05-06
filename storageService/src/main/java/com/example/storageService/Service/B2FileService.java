@@ -9,6 +9,7 @@ import com.backblaze.b2.client.exceptions.B2Exception;
 import com.backblaze.b2.client.structures.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -19,7 +20,6 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 public class B2FileService {
 
     @Value("${b2.bucket.name}")
@@ -46,7 +46,12 @@ public class B2FileService {
     @Value("${b2.folders.avatars}")
     private String avatarsFolder;
 
-    private final RedisTemplate<String, Object> storageServiceRedisTemplate;
+
+    @Autowired
+    private final RedisTemplate<String, Object> redisTemplate;
+    public B2FileService(@Qualifier("storageServiceRedisTemplate") RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
 
     private String getTokenKey() {
         return "b2:auth:token:" + bucketName;
@@ -122,7 +127,7 @@ public class B2FileService {
 
     public String getAuthToken() throws B2Exception {
         String tokenKey = getTokenKey();
-        String cachedToken = (String) storageServiceRedisTemplate.opsForValue().get(tokenKey);
+        String cachedToken = (String) redisTemplate.opsForValue().get(tokenKey);
         if (cachedToken != null) {
             return cachedToken;
         }
@@ -132,7 +137,7 @@ public class B2FileService {
                 .build();
         B2DownloadAuthorization auth = client.getDownloadAuthorization(request);
         String token = auth.getAuthorizationToken();
-        storageServiceRedisTemplate.opsForValue().set(tokenKey, token, Duration.ofSeconds(tokenTtlSeconds));
+        redisTemplate.opsForValue().set(tokenKey, token, Duration.ofSeconds(tokenTtlSeconds));
         return token;
     }
 }
