@@ -55,7 +55,7 @@ public class B2FileService {
     private B2StorageClient getB2Client() throws B2Exception {
         return B2StorageClientFactory
                 .createDefaultFactory()
-                .create(keyId, applicationKey, "storage-service");
+                .create(keyId, applicationKey, "storageService");
     }
 
     public com.example.storageService.Model.B2FileVersion uploadPropertyFile(
