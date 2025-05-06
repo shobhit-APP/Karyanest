@@ -1,6 +1,8 @@
 package com.example.Authentication.Service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +11,10 @@ import java.util.Set;
 @Service
 public class RedisService {
     private static final String BLOCKED_USERS_SET = "blockedUsersId";
-    private final RedisTemplate<String, Long> redisTemplate;
-
     @Autowired
+    @Qualifier("redisTemplate")
+    private RedisTemplate<String, Long> redisTemplate;
+
     public RedisService(RedisTemplate<String, Long> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
