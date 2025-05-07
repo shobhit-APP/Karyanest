@@ -13,22 +13,17 @@ import com.backend.karyanestApplication.Service.PropertyService;
 import com.backend.karyanestApplication.Service.UserPropertyVisitService;
 import com.backend.karyanestApplication.Service.UserService;
 import com.example.Authentication.Component.UserContext;
-import com.example.storageService.Model.B2FileVersion;
-import com.example.storageService.Service.B2FileService;
+import com.example.storageService.Model.FileVersion;
+import com.example.storageService.Service.StorageService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -53,7 +48,7 @@ public class PropertyController {
     @Autowired
     private PropertyPriceChangeRepository priceChangeRepository;
     @Autowired
-    private B2FileService b2FileService;
+    private StorageService storageService;
 
     /**
      * Retrieves all properties in the system.
@@ -133,12 +128,13 @@ public class PropertyController {
         try {
             List<PropertyResourceDTO> savedResources = new ArrayList<>();
             for (MultipartFile file : files) {
-                B2FileVersion fileVersion = b2FileService.uploadPropertyFile(
+                FileVersion fileVersion = storageService.uploadFile(
                         file.getOriginalFilename(),
                         file.getInputStream(),
                         file.getSize(),
                         file.getContentType(),
-                        id
+                        id,
+                        "property"
                 );
 
                 PropertyResourceDTO resourceDTO = new PropertyResourceDTO();
@@ -178,7 +174,7 @@ public class PropertyController {
             String fullPath = resourceDTO.getUrl();
             String fileName = fullPath.substring(fullPath.indexOf("nestero-rootfolder/") + "nestero-rootfolder/".length());
 
-            b2FileService.deleteFile(
+            storageService.deleteFile(
                     fileName,
                     resourceDTO.getFileId()
             );
@@ -189,6 +185,8 @@ public class PropertyController {
         } catch (B2Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Delete failed: " + e.getMessage()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
