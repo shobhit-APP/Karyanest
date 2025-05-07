@@ -43,7 +43,7 @@ public class Property {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal price; // Price of the property
 
-    @Column(nullable = false, length = 10)
+    @Column(length = 10)
     private String currency = "INR"; // Currency type
 
     @Column(name = "area_size", nullable = false, precision = 10, scale = 2)
@@ -65,7 +65,6 @@ public class Property {
     @Enumerated(EnumType.STRING)
     private FurnishedStatus furnishedStatus; // Furnished, Semi-Furnished, Unfurnished
 
-    @Column(nullable = false)
     private Integer parkingSpaces = 0; // Parking slots
 
     private Integer floorNumber; // Floor number (for Flats)
@@ -87,10 +86,8 @@ public class Property {
 
     private BigDecimal roadWidth; // Width of the road in front
 
-    @Column(nullable = false)
     private Boolean waterAvailability = true; // Water availability
 
-    @Column(nullable = false)
     private Boolean electricityAvailability = true; // Electricity availability
 
     private String securityFeatures; // Security features (e.g., CCTV)
@@ -104,16 +101,16 @@ public class Property {
     @Column(nullable = false)
     private String locationAddress; // Full address
 
-    @Column(nullable = false, length = 100)
+//    @Column(nullable = false, length = 100)
     private String city; // City name
 
-    @Column(nullable = false, length = 100)
+//    @Column(nullable = false, length = 100)
     private String state; // State name
+//
+//    @Column(nullable = false, length = 100)
+    private String country;
 
-    @Column(nullable = false, length = 100)
-    private String country = "India"; // Country name
-
-    @Column(nullable = false, length = 10)
+//    @Column(nullable = false, length = 10)
     private String pincode; // Postal code
 
     private BigDecimal latitude; // Latitude for location
@@ -131,7 +128,7 @@ public class Property {
     @Enumerated(EnumType.STRING)
     private VerificationStatus verificationStatus; // Pending, Verified, Rejected
 
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt; // Timestamp when added
 
     @Column(name = "updated_at")
