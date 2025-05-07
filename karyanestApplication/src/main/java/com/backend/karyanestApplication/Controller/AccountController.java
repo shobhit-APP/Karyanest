@@ -1,7 +1,6 @@
 package com.backend.karyanestApplication.Controller;
 
 import com.backblaze.b2.client.exceptions.B2Exception;
-import com.example.Authentication.Controller.AuthController;
 import com.backend.karyanestApplication.DTO.UserPreferencesDTO;
 import com.backend.karyanestApplication.DTO.UserRegistrationDTO;
 import com.backend.karyanestApplication.DTO.UserResponseDTO;
@@ -13,8 +12,8 @@ import com.example.Authentication.DTO.AuthResponseDTO;
 import com.example.Authentication.DTO.JWTUserDTO;
 import com.example.Authentication.DTO.UserDTO;
 import com.example.Authentication.Service.Auth;
-import com.example.storageService.Model.B2FileVersion;
-import com.example.storageService.Service.B2FileService;
+import com.example.storageService.Model.FileVersion;
+import com.example.storageService.Service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,7 +45,7 @@ public class AccountController {
     private UserContext userContext;
 
     @Autowired
-    private B2FileService b2FileService;
+    private StorageService storageService;
 
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(LeadsController.class);
@@ -242,7 +241,7 @@ public class AccountController {
             if (oldAvatarUrl != null && oldAvatarFileId != null) {
                 String fileName = oldAvatarUrl.substring(oldAvatarUrl.indexOf("nestero-rootfolder/") + "nestero-rootfolder/".length());
                 try {
-                    b2FileService.deleteFile(fileName, oldAvatarFileId);
+                    storageService.deleteFile(fileName, oldAvatarFileId);
                 } catch (B2Exception e) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                             .body(Map.of("error", "Failed to delete old avatar: " + e.getMessage()));
@@ -250,12 +249,13 @@ public class AccountController {
             }
 
             // Upload new avatar
-            B2FileVersion fileVersion = b2FileService.uploadAvatarFile(
+            FileVersion fileVersion = storageService.uploadFile(
                     file.getOriginalFilename(),
                     file.getInputStream(),
                     file.getSize(),
                     file.getContentType(),
-                    user.getId()
+                    user.getId(),
+                    "avatar"
             );
 
             userService.updateAvatar(user.getId(), fileVersion.getFileName(), fileVersion.getFileId());
