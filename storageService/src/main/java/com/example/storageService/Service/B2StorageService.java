@@ -43,13 +43,11 @@ public class B2StorageService implements StorageService {
     }
 
     private String getFolderName(String context) {
-        if ("avatar".equalsIgnoreCase(context)) {
-            return properties.getB2AvatarsFolder();
-        } else if ("property".equalsIgnoreCase(context)) {
-            return properties.getB2PropertiesFolder();
-        } else {
-            throw new IllegalArgumentException("Invalid context: " + context);
-        }
+        return switch (context.toLowerCase()) {
+            case "avatar" -> properties.getB2AvatarsFolder();
+            case "property" -> properties.getB2PropertiesFolder();
+            default -> throw new IllegalArgumentException("Invalid context: " + context);
+        };
     }
 
     @Override
