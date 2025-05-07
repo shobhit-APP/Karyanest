@@ -53,13 +53,10 @@ public class Property {
     @Column(name = "area_unit", nullable = false)
     private AreaUnit areaUnit; // Sq. Ft, Sq. Yards, Acres, etc.
 
-    @Column()
     private Integer bedrooms;
 
-    @Column()
     private Integer bathrooms;
 
-    @Column()
     private Integer balconies;
 
     @Enumerated(EnumType.STRING)
