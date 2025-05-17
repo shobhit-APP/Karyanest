@@ -8,11 +8,14 @@ import com.backend.karyanestApplication.Service.PropertyService;
 import com.backend.karyanestApplication.Service.UserService;
 import com.example.Authentication.Component.UserContext;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @RestController
@@ -277,46 +280,42 @@ public ResponseEntity<?> sendMessage(@RequestBody MessageRequest messageRequest,
         String username = userContext.getUsername(request);
         return userContext.getUserRole(request);
     }
-//    @GetMapping("/messages/{conversationId}")
-//    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('refresh_chat')")
-//    public ResponseEntity<?> getConversationMessages(@PathVariable Long conversationId, HttpServletRequest request) {
-//        Long userId = getUserId(request);
-//
-//        // Optionally: validate user is part of the conversation
-//        if (!chatService.isParticipant(conversationId, userId)) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-//                    .body(Map.of("error", "You are not authorized to view this conversation"));
-//        }
-//
-//        List<Message> messages = chatService.getRawMessages(conversationId);
-//        List<Map<String, Object>> chatMessages = new ArrayList<>();
-//
-//        Long previousSenderId = null;
-//
-//        for (Message msg : messages) {
-//            Map<String, Object> map = new HashMap<>();
-//            Long currentSenderId = msg.getSenderId();
-//            String name = userService.findById(currentSenderId).getFullName();
-//
-//            if (previousSenderId == null || previousSenderId.equals(currentSenderId)) {
-//                map.put("senderId", currentSenderId);
-//                map.put("name", name);
-//                map.put("message", msg.getMessage());
-//                map.put("timestamp", msg.getTimestamp().toString());
-//                map.put("IsSendstatus", true);
-//            } else {
-//                map.put("reciverId", currentSenderId);
-//                map.put("name", name);
-//                map.put("messagerecieved", msg.getMessage());
-//                map.put("timestamp", msg.getTimestamp().toString());
-//                map.put("IsSendstatus", false);
-//            }
-//
-//            previousSenderId = currentSenderId;
-//            chatMessages.add(map);
-//        }
-//
-//        return ResponseEntity.ok(chatMessages);
-//    }
+    @GetMapping("/conversation/{conversationId}")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('refresh_chat')")
+    public ResponseEntity<?> getConversationMessages(
+            @PathVariable Long conversationId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime timestamp,
+            HttpServletRequest request) {
+
+        Long userId = getUserId(request);
+
+        // ✅ Check if user is allowed to access this conversation
+        if (!chatService.isParticipant(conversationId, userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You are not authorized to view this conversation"));
+        }
+
+        // ✅ Fetch messages
+        List<Message> messages = (timestamp != null)
+                ? chatService.getMessagesAfterTimestamp(conversationId, timestamp)
+                : chatService.getRawMessages(conversationId);
+
+        // ✅ Build response
+        List<Map<String, Object>> chatMessages = new ArrayList<>();
+        for (Message msg : messages) {
+            Map<String, Object> map = new HashMap<>();
+            Long senderId = msg.getSenderId();
+            String name = userService.findById(senderId).getFullName();
+
+            map.put("userId", senderId);
+            map.put("name", name);
+            map.put("message", msg.getMessage());
+            map.put("timestamp", msg.getTimestamp().toString());
+            chatMessages.add(map);
+        }
+
+        return ResponseEntity.ok(chatMessages);
+    }
+
 
 }
