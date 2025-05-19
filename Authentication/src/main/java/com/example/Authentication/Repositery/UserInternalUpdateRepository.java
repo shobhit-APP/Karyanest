@@ -2,6 +2,8 @@ package com.example.Authentication.Repositery;
 
 import com.example.Authentication.Model.UserInternalUpdateEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -13,4 +15,8 @@ public interface UserInternalUpdateRepository extends JpaRepository<UserInternal
     UserInternalUpdateEntity findByEmail(String email);
 
     UserInternalUpdateEntity findByPhoneNumber(String phoneNumber);
+
+    @Query("SELECT u FROM UserInternalUpdateEntity u " +
+       "WHERE u.email = :value OR u.phoneNumber = :value OR u.username = :value")
+UserInternalUpdateEntity findByAnyIdentifier(@Param("value") String value);
 }

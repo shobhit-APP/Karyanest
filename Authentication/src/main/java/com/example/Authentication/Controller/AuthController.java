@@ -9,7 +9,7 @@ import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
 import com.example.Authentication.Component.UserContext;
 //import com.example.Authentication.Service.JwtService;
 import com.example.Authentication.UTIL.JwtUtil;
-import com.example.Authentication.Service.Auth;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +23,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 
 /**
@@ -49,24 +50,21 @@ public class AuthController {
     }
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
+     String value = Optional.ofNullable(request.get("email"))
+    .or(() -> Optional.ofNullable(request.get("phoneNumber")))
+    .or(() -> Optional.ofNullable(request.get("username")))
+    .orElseThrow(() -> new RuntimeException("No identifier provided"));
         String username = request.get("username");
         String phoneNumber = request.get("phoneNumber");
         String email = request.get("email");
         String password = request.get("password");
+        return auth.handleLoginRequest(value, password);
 
-        try {
-            return auth.handleLoginRequest(username, phoneNumber, email, password);
-        } catch (CustomException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", e.getMessage()));
-        } catch (AuthenticationException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Invalid credentials"));
-        } catch (Exception e) {
-            logger.error("Login error", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Authentication failed"));
-        }
+        
+
+      
+        // return auth.handleLoginRequest(username, phoneNumber, email, password);
+       
     }
     /**
      * Verifies a user's email using a token.
