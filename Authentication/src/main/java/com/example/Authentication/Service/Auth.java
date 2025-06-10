@@ -361,7 +361,7 @@ public class Auth implements AuthService, AuthHelper {
         return password.length() >= 8 && password.matches(".*[A-Z].*") && password.matches(".*\\d.*");
     }
 
-    public Long verifyPasswordResetToken(String token) {
+    public Long verifyToken(String token) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token);
 
         if (resetToken == null) {
@@ -475,7 +475,6 @@ public class Auth implements AuthService, AuthHelper {
         }
         user.setVerificationStatus("Verified");
         UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
-        updateUserInternalDTO.setStatus("Verified");
         updateUserInternalDTO.setUserId(user.getUserId());
         setUserDetailsInternally(updateUserInternalDTO);
     }

@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 @Tag(name = "Authentication", description = "Authentication operations")
 public class RegistrationController {
     private final UserService userService;
-    private static final Logger logger = LoggerFactory.getLogger(LeadsController.class);
+    private static final Logger logger = LoggerFactory.getLogger(RegistrationController.class);
     @Autowired
     public RegistrationController(UserService userService) {
         this.userService = userService;

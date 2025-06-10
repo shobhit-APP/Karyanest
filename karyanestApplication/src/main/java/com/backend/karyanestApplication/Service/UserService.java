@@ -467,12 +467,12 @@ public class UserService {
             // Resend verification OTP via SMS
             //        SMS_Service.sendSMS(user.getPhoneNumber());
             verificationType = "SMS";
-            verificationUrl = "http://karynest-real-state.azurewebsites.net/v1/verify-user-otp";
+            verificationUrl = "https://nestaro.in/v1/verify-user-otp";
         } else {
             // Email verification scenario
             String token = auth.GenerateToken(user.getId(),user.getEmail());
             verificationType = "email";
-            verificationUrl = "http://karynest-real-state.azurewebsites.net/v1/verify?email=" +
+            verificationUrl = "https://nestaro.in/v1/verify?email=" +
                     user.getEmail() + "&token=" + token;
         }
 

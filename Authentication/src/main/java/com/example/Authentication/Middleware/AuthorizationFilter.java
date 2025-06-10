@@ -40,13 +40,14 @@ public class AuthorizationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // Allowlisted paths
+       //  Allowlisted paths
         if (path.matches("^/v1/auth/.*") || path.matches("^/v1/home/.*") ||
                 path.matches("^/v3/api-docs.*") || path.matches("^/swagger-ui/.*") ||
                 path.matches("^/swagger-ui.html$") || path.matches("^/internal.*")) {
             filterChain.doFilter(request, response);
             return;
         }
+
 
         // Validate and extract user
         String username = userContext.validateAndExtractUser(request, response);

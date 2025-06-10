@@ -85,8 +85,8 @@ public class AuthController {
         }
 
         try {
-            // Validate token
-            auth.verifyPasswordResetToken(token);
+            // Validate token Here It Is Only For Verification of Account
+            auth.verifyToken(token);
 
             if (Objects.equals(user.getVerificationStatus(), "Verified")) {
                 return ResponseEntity.ok(Map.of("message", "Your account is already verified."));
@@ -351,7 +351,7 @@ public class AuthController {
 
         try {
             // Verify token and get user ID
-            Long userId = auth.verifyPasswordResetToken(token);
+            Long userId = auth.verifyToken(token);
             if (userId == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "Invalid or expired token"));
