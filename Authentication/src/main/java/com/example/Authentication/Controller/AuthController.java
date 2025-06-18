@@ -69,43 +69,54 @@ public class AuthController {
         }
     }
     /**
-     * Verifies a user's email using a token.
+     * Endpoint to verify a user's email using a token.
      *
-     * @param email The email of the user to verify
-     * @param token The verification token
-     * @return ResponseEntity with a success or error message
+     * @param email the email of the user to verify
+     * @param token the verification token
+     * @return ResponseEntity with success or error message
      */
     @PostMapping("/verify")
-    public ResponseEntity<Map<String, Object>> verifyUser(@RequestParam String email, @RequestParam String token) {
-        UserDTO user = auth.getUserDetails("email",email);
-
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "User not found with this email."));
-        }
+    public ResponseEntity<Map<String, Object>> verifyUser(
+            @RequestParam String email,
+            @RequestParam String token) {
 
         try {
-            // Validate token Here It Is Only For Verification of Account
-            auth.verifyToken(token);
+            // Step 1: Get user by email
+            UserDTO user = auth.getUserDetails("email", email);
 
-            if (Objects.equals(user.getVerificationStatus(), "Verified")) {
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "User not found with this email."));
+            }
+
+            // Step 2: Check if already verified
+            if ("Verified".equalsIgnoreCase(user.getVerificationStatus())) {
                 return ResponseEntity.ok(Map.of("message", "Your account is already verified."));
             }
 
-            // Verify the user
-            auth.verifyUser(email);
+            // Step 3: Verify token and match with user
+            Long tokenUserId = auth.verifyToken(token);
+            if (!user.getUserId().equals(tokenUserId)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Token does not match the user."));
+            }
+
+            // Step 4: Proceed with verification
+            auth.verifyUser(user);
             return ResponseEntity.ok(Map.of("message", "User verified successfully via Email Service."));
 
         } catch (CustomException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            logger.error("Verification error", e);
+            logger.error("Verification error for email: {}", email, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Verification failed. Please try again later."));
-        }
     }
-        /**
+
+}
+
+    /**
      * Verify a user's phone number during the registration process.
      *
      * @param request A map containing phoneNumber and OTP.
@@ -244,33 +255,31 @@ public class AuthController {
         String phoneNumber = requestBody.get("phoneNumber");
         String resetMethod = requestBody.get("resetMethod"); // "email" or "phone"
 
-        // Validate that at least one identifier is provided
-        if(!auth.ValidateIdentifier(username,phoneNumber,email))
-        {
+        // ✅ Validate that at least one identifier is provided
+        if (!auth.ValidateIdentifier(username, phoneNumber, email)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Username, email, or phone number is required"));
         }
-        // Validate reset method
-        if(!auth.validateResetMethod(resetMethod))
-        {
+
+        // ✅ Validate reset method
+        if (!auth.validateResetMethod(resetMethod)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Valid reset method (email or phone) is required"));
         }
+
         try {
-            // Determine which method to use for identifying the user
+            // ✅ Determine the login method (username, email, or phone)
             Auth.LoginMethod loginMethod = auth.determineLoginMethod(username, email, phoneNumber);
 
-            // Find the user
-            UserDTO user=auth.findUser(loginMethod,username,phoneNumber,email);
+            // ✅ Find the user by the chosen method
+            UserDTO user = auth.findUser(loginMethod, username, phoneNumber, email);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
             }
 
-            // Generate reset token or OTP based on reset method
+            // ✅ Handle password reset via email
             if (resetMethod.equals("email")) {
-                // Generate reset token
-                String resetToken=auth.GenerateToken(user.getUserId(),user.getEmail());
-                // Generate reset link and send email
-                 String resetLink = auth.generateResetLink(request);
-                 String message=emailService.sendPasswordResetEmail(user.getEmail(), resetLink,resetToken);
+                String resetToken = auth.GenerateToken(user.getUserId(), user.getEmail());
+                String resetLink = auth.generateResetLink(request);
+                String message = emailService.sendPasswordResetEmail(user.getEmail(), resetLink, resetToken);
 
                 return ResponseEntity.ok(Map.of(
                         "message", message,
@@ -278,24 +287,16 @@ public class AuthController {
                 ));
 
             } else {
-//                // Always use hardcoded OTP "123456" for testing
-//                String otp = "123456";
-//
-//                // Store hardcoded OTP with user's phone (in case you need to verify it later)
-//                // In a real system, you would generate a unique OTP for each reset request
-//                Map<String, String> otpMap = new HashMap<>();
-//                otpMap.put(user.getPhoneNumber(), otp);
+                // ✅ Handle password reset via phone (e.g., OTP flow)
+                // Replace below with actual logic if OTP generation and verification is implemented
                 return auth.handelPhoneVerification(user.getPhoneNumber(), "https://nestaro.in/v1/auth/verify-otp-for-reset");
-//                // In production, send real SMS with OTP
-//                smsService.sendOtp(user.getPhoneNumber(), otp);
             }
 
         } catch (Exception e) {
-            logger.error("Password reset error", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Password reset failed"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Something went wrong: " + e.getMessage()));
         }
     }
+
     /**
      * Verify OTP and complete password reset (for phone method)
      */

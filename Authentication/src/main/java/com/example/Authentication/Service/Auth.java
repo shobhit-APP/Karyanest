@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 @Service
 public class Auth implements AuthService, AuthHelper {
     // Configuration constants
-    private static final String VERIFICATION_LINK_TEMPLATE = "https://nestaro.in/v1/auth/verify?email=";
+    private static final String VERIFICATION_LINK_TEMPLATE = "https://nestaro.in/v1/auth/verify";
 
     // Dependencies
     private final AuthenticationManager authenticationManager;
@@ -93,6 +93,7 @@ public class Auth implements AuthService, AuthHelper {
     @Override
     public String generateResetLink(HttpServletRequest request) {
         String baseUrl = request.getRequestURL().toString().replace(request.getRequestURI(), "");
+        System.out.println(baseUrl);
         return baseUrl + "/reset-password-using-token";
     }
 
@@ -184,7 +185,7 @@ public class Auth implements AuthService, AuthHelper {
         if (user == null) {
             throw new CustomException("User not found with phone number:" + Phone);
         }
-        return handelPhoneVerification(Phone, "http://webapp-2y66rs5uhebeg.azurewebsites.net/v1/auth/verify-otp");
+        return handelPhoneVerification(Phone, "https://nestaro.in/v1/auth/verify-otp");
     }
 
     @Override
@@ -365,14 +366,17 @@ public class Auth implements AuthService, AuthHelper {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token);
 
         if (resetToken == null) {
-            return null; // Token does not exist
+            throw new CustomException("Invalid verification token.");
         }
+
         if (resetToken.getExpiryDate().isBefore(Instant.now())) {
-            passwordResetTokenRepository.delete(resetToken);
-            throw new IllegalStateException("Token has expired. Please request a new one.");
+            passwordResetTokenRepository.delete(resetToken); // Optional: clean up expired tokens
+            throw new CustomException("Token has expired. Please request a new one.");
         }
+
         return resetToken.getUserId();
     }
+
 
     /**
      * Generate and store OTP for login
@@ -464,19 +468,25 @@ public class Auth implements AuthService, AuthHelper {
     /**
      * Verify a user's email.
      *
-     * @param email the email to verify
-     * @throws CustomException if user not found
+     * @param user the user to verify
+     * @throws CustomException if user is null
      */
     @Transactional
-    public void verifyUser(String email) {
-        UserDTO user = getUserDetails("email", email);
-        if (user == null) {
-            throw new CustomException("User not found");
+    public void verifyUser(UserDTO user) {
+        try {
+            if (user == null || user.getUserId() == null) {
+                throw new CustomException("User not found");
+            }
+
+            user.setVerificationStatus("Verified");
+
+            UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
+            updateUserInternalDTO.setUserId(user.getUserId());
+
+            setUserDetailsInternally(updateUserInternalDTO);
+        } catch (Exception e) {
+            throw new CustomException("Error verifying user: " + e.getMessage());
         }
-        user.setVerificationStatus("Verified");
-        UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
-        updateUserInternalDTO.setUserId(user.getUserId());
-        setUserDetailsInternally(updateUserInternalDTO);
     }
 
     public UserDTO getUserDetails(String key, String value) {
