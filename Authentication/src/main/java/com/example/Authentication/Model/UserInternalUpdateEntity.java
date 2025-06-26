@@ -49,13 +49,21 @@ public class UserInternalUpdateEntity {
     @Column(name = "last_login")
     private Timestamp lastLogin;
 
-    // Enums must match your original User entity's enums:
-    public enum VerificationStatus {
-        Unverified, Verified, Rejected, Pending
+
+    public boolean isAccountBlocked() {
+        return this.getStatus().toString().equals("Blocked");
+    }
+
+    public boolean isVerified() {
+        return this.getVerificationStatus().toString().equals("Verified");
     }
 
     public enum VerificationMethod {
         Email, Phone, Documents
+    }
+
+    public enum VerificationStatus {
+        Unverified, Verified, Rejected, Pending
     }
 
     public enum UserStatus {

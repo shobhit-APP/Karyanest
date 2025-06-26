@@ -16,8 +16,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -218,6 +222,37 @@ public class Auth implements AuthService, AuthHelper {
         }
         return resetMethod.equals("email") || resetMethod.equals("phone");
     }
+
+    public ResponseEntity<?> handleLoginRequest(String username, String password){
+        if(isNullOrEmpty(username) || isNullOrEmpty(password)){
+           throw new BadCredentialsException("Username and password are required");
+        }
+          UserInternalUpdateEntity user = userInternalUpdateRepository.findByAnyIdentifier(username);
+        //   if(!user.isVerified()){
+        //         return notifyUser(user);
+        //   }
+        
+          if(user.isAccountBlocked()){
+            throw new  LockedException("Your account is blocked. Please contact admin.");
+          }
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), password));
+
+        Long userRoleId = user.getRole().getId();
+        String UserRole = user.getRole().getName();
+        // Fetch permissions for the user
+        List<RolesPermission> rolePermissions = rolesPermissionRepository.findPermissionsByRoleId(userRoleId);
+        List<String> permissionList = rolePermissions.stream()
+                .map(rp -> rp.getPermissions().getPermission())
+                .collect(Collectors.toList());
+
+        String jwtToken = jwtUtil.generateToken(user.getUsername(), UserRole, user.getUserId(), user.getFullName(), permissionList);
+        String refreshToken = referenceTokenService.generateReferenceToken(jwtToken);
+        
+        // Generate and return response
+        AuthResponseDTO authResponse = new AuthResponseDTO(jwtToken, refreshToken, UserRole);
+        return ResponseEntity.ok(authResponse);
+    }
+
 
     public ResponseEntity<?> handleLoginRequest(String username, String phoneNumber, String email, String password) {
         // OTP Login - phone number only
@@ -498,7 +533,7 @@ public class Auth implements AuthService, AuthHelper {
          };
 
         if (user == null) {
-            throw new CustomException("User not found with " + key + ": " + value);
+            throw new BadCredentialsException("User not found with " + key + ": " + value);
         }
 
         UserDTO userDTO = new UserDTO();
