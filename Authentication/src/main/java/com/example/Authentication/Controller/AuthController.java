@@ -64,6 +64,7 @@ public class AuthController {
                     .body(Map.of("error", "Invalid credentials"));
         } catch (Exception e) {
             logger.error("Login error", e);
+            System.out.println(e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Authentication failed"));
         }

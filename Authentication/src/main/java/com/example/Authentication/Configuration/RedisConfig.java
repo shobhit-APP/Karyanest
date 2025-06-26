@@ -15,7 +15,7 @@ public class RedisConfig {
 
     @Bean(name = "authRedisConnection")
     public RedisConnectionFactory redisConnectionFactory() {
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration("139.59.10.226", 6379);
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration("139.59.86.74", 6379);
         config.setPassword("Shobhit@2004");
         return new LettuceConnectionFactory(config);
     }
