@@ -80,7 +80,6 @@ public class UserPropertyVisitService {
         if (existingVisit.isPresent()) {
             // Update existing visit information
             UserPropertyVisit visit = existingVisit.get();
-            visit.setVisitTime(Timestamp.from(Instant.now()));
 
             // Update device and location info if provided
             if (deviceInfo != null) {
@@ -96,7 +95,6 @@ public class UserPropertyVisitService {
             UserPropertyVisit newVisit = new UserPropertyVisit();
             newVisit.setUserId(userId);
             newVisit.setPropertyId(propertyId);
-            newVisit.setVisitTime(Timestamp.from(Instant.now()));
             newVisit.setDeviceInfo(deviceInfo);
             newVisit.setLocationCoords(locationCoords);
 

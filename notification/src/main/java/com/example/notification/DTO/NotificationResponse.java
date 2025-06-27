@@ -1,9 +1,11 @@
 package com.example.notification.DTO;
 
 import com.example.notification.Model.Notification;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.sql.Timestamp;
+import java.time.ZonedDateTime;
 
 @Data
 public class NotificationResponse {
@@ -14,7 +16,9 @@ public class NotificationResponse {
     private String notificationType;
     private boolean isGlobal;
     private String status;
-    private Timestamp createdAt;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
+    private
+    ZonedDateTime createdAt;
 
     public NotificationResponse(Notification notification) {
         this.id = notification.getId();

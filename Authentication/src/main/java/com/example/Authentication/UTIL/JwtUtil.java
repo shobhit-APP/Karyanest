@@ -18,7 +18,7 @@ import java.util.*;
 public class JwtUtil {
     private String SECRET_KEY;
 
-    @Value("${jwt.expiration}") // JWT expiration time from properties
+    @Value("${jwt.expiration:432000000}") // default to 5 days
     private long JWT_EXPIRATION;
 
     public JwtUtil() {

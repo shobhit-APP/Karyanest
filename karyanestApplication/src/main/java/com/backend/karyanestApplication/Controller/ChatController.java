@@ -15,7 +15,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 @RestController
@@ -109,7 +112,7 @@ public class ChatController {
 //            chatMessages.add(map);
 //        }
 
-//        // Handle no reply case
+    //        // Handle no reply case
 //        Long receiverId = chatService.getsReceiverId(conversationId, userId);
 //        boolean receiverReplied = chatMessages.stream()
 //                .anyMatch(msg -> receiverId != null && receiverId.equals(msg.get("senderId")));
@@ -189,55 +192,56 @@ public class ChatController {
 //
 //    return ResponseEntity.ok(chatMessages);
 //}
-@PostMapping("/send")
-@PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_send')")
-public ResponseEntity<?> sendMessage(@RequestBody MessageRequest messageRequest, HttpServletRequest request) {
-    Long userId = getUserId(request);
-    String role = getUserRole(request);
+    @PostMapping("/send")
+    @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_send')")
+    public ResponseEntity<?> sendMessage(@RequestBody MessageRequest messageRequest, HttpServletRequest request) {
+        Long userId = getUserId(request);
+        String role = getUserRole(request);
 
-    if (!chatService.canSendMessage(userId, messageRequest.getConversationId(), role)) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("error", "You are not authorized to send this message"));
+        if (!chatService.canSendMessage(userId, messageRequest.getConversationId(), role)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "You are not authorized to send this message"));
+        }
+
+        Message message = chatService.sendMessage(messageRequest, userId, role);
+        if (message == null) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to send message"));
+        }
+
+        Long conversationId = message.getConversation() != null ? message.getConversation().getId() : null;
+        if (conversationId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Conversation ID is missing"));
+        }
+
+        // ⏰ Check timestamp in request (optional)
+        List<Message> messages;
+        if (messageRequest.getTimestamp() != null) {
+
+            messages = chatService.getMessagesAfterTimestamp(conversationId, messageRequest.getTimestamp());
+        } else {
+            messages = chatService.getRawMessages(conversationId);
+        }
+
+        // 🔁 Prepare response
+        List<Map<String, Object>> chatMessages = new ArrayList<>();
+
+        for (Message msg : messages) {
+            Map<String, Object> map = new HashMap<>();
+            Long senderId = msg.getSenderId();
+            String name = userService.findById(senderId).getFullName();
+
+            map.put("userId", senderId);
+            map.put("name", name);
+            map.put("message", msg.getMessage());
+            map.put("timestamp", msg.getTimestamp().toString());
+
+            chatMessages.add(map);
+        }
+
+        return ResponseEntity.ok(chatMessages);
     }
-
-    Message message = chatService.sendMessage(messageRequest, userId, role);
-    if (message == null) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Failed to send message"));
-    }
-
-    Long conversationId = message.getConversation() != null ? message.getConversation().getId() : null;
-    if (conversationId == null) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("error", "Conversation ID is missing"));
-    }
-
-    // ⏰ Check timestamp in request (optional)
-    List<Message> messages;
-    if (messageRequest.getTimestamp() != null) {
-        messages = chatService.getMessagesAfterTimestamp(conversationId, messageRequest.getTimestamp());
-    } else {
-        messages = chatService.getRawMessages(conversationId);
-    }
-
-    // 🔁 Prepare response
-    List<Map<String, Object>> chatMessages = new ArrayList<>();
-
-    for (Message msg : messages) {
-        Map<String, Object> map = new HashMap<>();
-        Long senderId = msg.getSenderId();
-        String name = userService.findById(senderId).getFullName();
-
-        map.put("userId", senderId);
-        map.put("name", name);
-        map.put("message", msg.getMessage());
-        map.put("timestamp", msg.getTimestamp().toString());
-
-        chatMessages.add(map);
-    }
-
-    return ResponseEntity.ok(chatMessages);
-}
 
 
 
@@ -284,7 +288,7 @@ public ResponseEntity<?> sendMessage(@RequestBody MessageRequest messageRequest,
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('refresh_chat')")
     public ResponseEntity<?> getConversationMessages(
             @PathVariable Long conversationId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime timestamp,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) ZonedDateTime timestamp,
             HttpServletRequest request) {
 
         Long userId = getUserId(request);

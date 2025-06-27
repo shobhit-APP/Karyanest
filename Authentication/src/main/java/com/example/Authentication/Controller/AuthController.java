@@ -41,12 +41,14 @@ public class AuthController {
     @Autowired
     private Auth auth;
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+
     @Autowired
     public AuthController(JwtUtil jwtUtil, ReferenceTokenService referenceTokenService,
                           AuthenticationManager authenticationManager) {
         this.jwtUtil = jwtUtil;
         this.referenceTokenService = referenceTokenService;
     }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
         String username = request.get("username");
@@ -113,9 +115,9 @@ public class AuthController {
             logger.error("Verification error for email: {}", email, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Verification failed. Please try again later."));
-    }
+        }
 
-}
+    }
 
     /**
      * Verify a user's phone number during the registration process.
@@ -156,6 +158,7 @@ public class AuthController {
             );
         }
     }
+
     /**
      * Verify a user's phone number and OTP during login.
      *
@@ -180,11 +183,11 @@ public class AuthController {
 
             if (!isOtpValid) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
-                        Map.of("error", "Invalid OTP.")
+                        Map.of("error", "Invalid OTP Or Expired.")
                 );
             }
 
-            UserDTO user = auth.getUserDetails("phoneNumber",phoneNumber.trim());
+            UserDTO user = auth.getUserDetails("phoneNumber", phoneNumber.trim());
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                         Map.of("error", "User not found for this phone number.")
@@ -238,9 +241,9 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid reference token"));
         }
         // Get the user and update status to inactive
-        UserDTO user = auth.getUserDetails("username",username);
+        UserDTO user = auth.getUserDetails("username", username);
         if (user != null) {
-            UpdateUserInternalDTO updateUserInternalDTO =new UpdateUserInternalDTO();
+            UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
             updateUserInternalDTO.setStatus("Inactive");
             updateUserInternalDTO.setUserId(user.getUserId());
             auth.setUserDetailsInternally(updateUserInternalDTO);
@@ -249,6 +252,7 @@ public class AuthController {
         referenceTokenService.invalidateReferenceToken(referenceToken);
         return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
+
     @PostMapping("/forget-password")
     public ResponseEntity<?> forgetPassword(@RequestBody Map<String, String> requestBody, HttpServletRequest request) {
         String username = requestBody.get("username");
@@ -314,58 +318,27 @@ public class AuthController {
 
         try {
             // Always verify against hardcoded OTP "123456"
-            boolean isOtpValid = auth.verifyOtp(phoneNumber,otp);
+            boolean isOtpValid = auth.verifyOtp(phoneNumber, otp);
 
             if (!isOtpValid) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid OTP or Phone number"));
+                        .body(Map.of("error", "Invalid OTP or Phone number or Otp is Expired"));
             }
 
             // Get user
-             UserDTO user = auth.getUserDetails("phoneNumber",phoneNumber);
+            UserDTO user = auth.getUserDetails("phoneNumber", phoneNumber);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "User not found"));
             }
 
             // Update password
-            auth.updatePassword(user.getUserId(),newPassword);
+            auth.updatePassword(user.getUserId(), newPassword);
 
             return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
 
         } catch (Exception e) {
             logger.error("OTP verification error", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Password reset failed"));
-        }
-    }
-    /**
-     * Complete password reset using token (for email method)
-     */
-    @PostMapping("/reset-password-using-token")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> requestBody) {
-        String token = requestBody.get("token");
-        String newPassword = requestBody.get("newPassword");
-
-        if (auth.isNullOrEmpty(token) || auth.isNullOrEmpty(newPassword)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Token and new password are required"));
-        }
-
-        try {
-            // Verify token and get user ID
-            Long userId = auth.verifyToken(token);
-            if (userId == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("error", "Invalid or expired token"));
-            }
-
-            // Update password
-            auth.updatePassword(userId, newPassword);
-
-            return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
-
-        } catch (Exception e) {
-            logger.error("Password reset error", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Password reset failed"));
         }

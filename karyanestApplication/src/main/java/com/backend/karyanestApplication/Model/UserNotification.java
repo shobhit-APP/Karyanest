@@ -4,9 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.sql.Timestamp;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Data
 @NoArgsConstructor
@@ -34,13 +33,18 @@ public class UserNotification {
     @Column(name = "status", nullable = false)
     private NotificationStatus status;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Timestamp createdAt;
+    private ZonedDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
 
     public enum NotificationType {
         PROPERTY_INQUIRY, TRANSACTION_UPDATE, REMINDER, ALERT
     }
+
     public enum NotificationStatus {
         SENT, READ, UNSENT
     }

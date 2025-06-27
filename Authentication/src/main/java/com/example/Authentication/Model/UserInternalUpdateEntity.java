@@ -1,10 +1,12 @@
 package com.example.Authentication.Model;
 
 import com.example.rbac.Model.Roles;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Data;
 
 import java.sql.Timestamp;
+import java.time.ZonedDateTime;
 
 @Entity
 @Table(name = "user") // Important! Use existing table
@@ -47,7 +49,8 @@ public class UserInternalUpdateEntity {
     private Roles role;
 
     @Column(name = "last_login")
-    private Timestamp lastLogin;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
+    private ZonedDateTime lastLogin;
 
     // Enums must match your original User entity's enums:
     public enum VerificationStatus {

@@ -4,10 +4,8 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.nio.ByteBuffer;
-import java.sql.Timestamp;
-import java.util.UUID;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "user_property_visits")
@@ -15,10 +13,11 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserPropertyVisit {
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        @Column(name = "id", unique = true, nullable = false)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", unique = true, nullable = false)
+    private Long id;
+
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
@@ -26,7 +25,7 @@ public class UserPropertyVisit {
     private Long propertyId;
 
     @Column(name = "visit_time", nullable = false)
-    private Timestamp visitTime;
+    private ZonedDateTime visitTime;
 
     @Column(name = "device_info", nullable = true)
     private String deviceInfo;
@@ -34,14 +33,17 @@ public class UserPropertyVisit {
     @Column(name = "location_coords", nullable = true)
     private String locationCoords;
 
-    
-    public UserPropertyVisit(Long userId, Long id, String deviceInfo, Timestamp from) {
-        this.userId=userId;
-        this.deviceInfo=deviceInfo;
-        this.propertyId=id;
-        this.visitTime=from;
+    @PrePersist
+    protected void onCreate() {
+        if (this.visitTime == null) {
+            this.visitTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        }
+    }
+
+    public UserPropertyVisit(Long userId, Long propertyId, String deviceInfo, ZonedDateTime visitTime) {
+        this.userId = userId;
+        this.propertyId = propertyId;
+        this.deviceInfo = deviceInfo;
+        this.visitTime = visitTime;
     }
 }
-
-
-

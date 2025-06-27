@@ -3,7 +3,8 @@ package com.backend.karyanestApplication.Model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Getter
@@ -17,14 +18,19 @@ public class Message {
 
     @ManyToOne
     @JoinColumn(name = "conversation_id", nullable = false)
-    private Conversation conversation; // Chat session
+    private Conversation conversation;
 
     @Column(name = "sender_id", nullable = false)
-    private Long senderId; // Store User ID, no direct relation
+    private Long senderId;
 
     @Column(columnDefinition = "TEXT", nullable = false)
-    private String message; // Message content
+    private String message;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime timestamp = LocalDateTime.now(); // When the message was sent
+    private ZonedDateTime timestamp;
+
+    @PrePersist
+    protected void onCreate() {
+        this.timestamp = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
 }

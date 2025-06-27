@@ -1,9 +1,13 @@
 package com.example.Authentication.Service;
+import com.example.Authentication.Controller.AuthController;
 import com.example.Authentication.DTO.AuthResponseDTO;
 import com.example.Authentication.DTO.UpdateUserInternalDTO;
 import com.example.Authentication.DTO.UserDTO;
+import com.example.Authentication.Model.Otpdata;
 import com.example.Authentication.Model.PasswordResetToken;
 import com.example.Authentication.Model.UserInternalUpdateEntity;
+//import com.example.Authentication.Repositery.OtpRepository;
+import com.example.Authentication.Repositery.OtpRepository;
 import com.example.Authentication.Repositery.UserInternalUpdateRepository;
 import com.example.Authentication.UTIL.JwtUtil;
 import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
@@ -11,9 +15,15 @@ import com.example.Authentication.Repositery.PasswordResetTokenRepository;
 import com.example.rbac.Model.RolesPermission;
 import com.example.rbac.Repository.RolesPermissionRepository;
 import com.example.rbac.Repository.RolesRepository;
+import com.twilio.Twilio;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
+import com.twilio.rest.api.v2010.account.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,20 +31,28 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import com.twilio.type.PhoneNumber;
 
+
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class Auth implements AuthService, AuthHelper {
+public class Auth implements AuthService, AuthHelper,OtpService {
     // Configuration constants
     private static final String VERIFICATION_LINK_TEMPLATE = "https://nestaro.in/v1/auth/verify";
-
+    private final SmsService sendOtpViaSms;
+    @Autowired
+    private final OtpRepository otpRepository;
     // Dependencies
+    private static final Logger logger = LoggerFactory.getLogger(Auth.class);
     private final AuthenticationManager authenticationManager;
     private final RestTemplate restTemplate;
     private final EmailService emailService;
@@ -46,12 +64,10 @@ public class Auth implements AuthService, AuthHelper {
     private final RedisService redisService;
     @Autowired
     private UserInternalUpdateRepository userInternalUpdateRepository;
-
     // In-memory OTP storage
     private final Map<String, String> otpStorage = new HashMap<>();
     // In-memory registration OTP storage (separate from login OTP)
     private final Map<String, String> registrationOtpStorage = new HashMap<>();
-
     public enum LoginMethod {
         EMAIL, PHONE, USERNAME
     }
@@ -59,7 +75,7 @@ public class Auth implements AuthService, AuthHelper {
     // Constructor with all required dependencies
     @Autowired
     public Auth(
-            AuthenticationManager authenticationManager,
+            SmsService sendOtpViaSms, OtpRepository otpRepository, AuthenticationManager authenticationManager,
             RestTemplate restTemplate,
             EmailService emailService,
             PasswordResetTokenRepository passwordResetTokenRepository,
@@ -67,6 +83,8 @@ public class Auth implements AuthService, AuthHelper {
             JwtUtil jwtUtil,
             ReferenceTokenService referenceTokenService,
             RolesPermissionRepository rolesPermissionRepository, RedisService redisService) {
+            this.sendOtpViaSms = sendOtpViaSms;
+        this.otpRepository = otpRepository;
 
         this.authenticationManager = authenticationManager;
         this.restTemplate = restTemplate;
@@ -136,17 +154,86 @@ public class Auth implements AuthService, AuthHelper {
     }
 
     @Override
-    public ResponseEntity<?> handelPhoneVerification(String PhoneNumber, String verificationUrl) {
-        // Generate and store OTP with expiration
-        String otp = generateAndStoreOtp(PhoneNumber);
+    public ResponseEntity<?> handelPhoneVerification(String phoneNumber, String verificationUrl) {
+        logger.info("Starting phone verification for: {}", phoneNumber);
 
-        // Send OTP securely (implementation depends on your SMS service)
-        return ResponseEntity.ok(Map.of(
-                "message", "Verification code sent",
-                "phoneNumber", maskPhoneNumber(PhoneNumber),
-                "verificationUrl", verificationUrl
-        ));
+        try {
+            // Validate phone number first
+            if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "success", false,
+                        "message", "Phone number is required",
+                        "error", "INVALID_PHONE_NUMBER"
+                ));
+            }
+
+            // Generate and store OTP
+            String otp = generateAndStoreOtp(phoneNumber);
+
+            if (otp == null || otp.isEmpty()) {
+                logger.error("Failed to generate OTP for phone: {}", phoneNumber);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "success", false,
+                        "message", "Failed to generate verification code",
+                        "error", "OTP_GENERATION_FAILED"
+                ));
+            }
+
+            // Send OTP via SMS
+            try {
+                sendOtpViaSms.sendOtp(phoneNumber, otp);
+                logger.info("OTP sent successfully to phone: {}", phoneNumber);
+
+                // Success Response
+                return ResponseEntity.ok(Map.of(
+                        "success", true,
+                        "message", "Verification code sent successfully",
+                        "phoneNumber", maskPhoneNumber(phoneNumber),
+                        "verificationUrl", verificationUrl,
+                        "timestamp", System.currentTimeMillis(),
+                        // Remove this line in production
+                        "otp", otp // Only for testing phase
+                ));
+
+            } catch (CustomException e) {
+                logger.error("CustomException while sending OTP to phone: {}. Error: {}", phoneNumber, e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "success", false,
+                        "message", "Failed to send verification code",
+                        "error", e.getMessage(),
+                        "errorCode", "SMS_SEND_FAILED"
+                ));
+
+            } catch (Exception e) {
+                logger.error("IOException while sending OTP to phone: {}. Error: {}", phoneNumber, e.getMessage(), e);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                        "success", false,
+                        "message", "Network error while sending verification code",
+                        "error", "NETWORK_ERROR",
+                        "details", e.getMessage()
+                ));
+            }
+
+        } catch (CustomException e) {
+            logger.error("CustomException during OTP generation for phone: {}. Error: {}", phoneNumber, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "message", "Failed to process verification request",
+                    "error", e.getMessage(),
+                    "errorCode", "OTP_PROCESS_FAILED"
+            ));
+
+        } catch (Exception e) {
+            logger.error("Unexpected error during phone verification for: {}. Error: {}", phoneNumber, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "success", false,
+                    "message", "Internal server error",
+                    "error", "INTERNAL_SERVER_ERROR",
+                    "details", e.getMessage()
+            ));
+        }
     }
+
 
     @Override
     public String maskPhoneNumber(String phoneNumber) {
@@ -260,7 +347,7 @@ public class Auth implements AuthService, AuthHelper {
             }
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Your account is blocked. Please contact admin."));
-            }
+        }
         if (isInRedis) {
             redisService.removeFromBlockedUsers(userId);
         }
@@ -318,12 +405,12 @@ public class Auth implements AuthService, AuthHelper {
             String otp = generateAndStoreOtp(user.getPhoneNumber());
             // Here you would integrate with SMS service to send the OTP
             verificationType = "SMS";
-            verificationUrl = "https://nestaro.in/v1/verify-user-otp";
+            verificationUrl = "https://nestaro.in/v1/auth/verify-user-otp";
         } else {
             // Email verification scenario
             String token = GenerateToken(user.getUserId(), user.getEmail());
             verificationType = "email";
-            verificationUrl = "https://nestaro.in/v1/verify?email=" +
+            verificationUrl = "https://nestaro.in/v1/auth/verify?email=" +
                     user.getEmail() + "&token=" + token;
         }
 
@@ -343,19 +430,32 @@ public class Auth implements AuthService, AuthHelper {
         return sendLoginResponse(user);
     }
 
-    @Transactional
-    public void updatePassword(Long userId, String newPassword) {
-        if (!isValidPassword(newPassword)) {
-            System.out.println();
-            throw new CustomException("Password does not meet security requirements");
-        }
-        UserDTO user = getUserDetails("UserId", Long.toString(userId));
-        //settingPsswordmethod
-        UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
-        updateUserInternalDTO.setNewPassword(newPassword);
-        updateUserInternalDTO.setUserId(user.getUserId());
-        setUserDetailsInternally(updateUserInternalDTO);
-    }
+//    @Transactional
+//    public void updatePassword(Long userId, String newPassword) {
+//        if (!isValidPassword(newPassword)) {
+//            System.out.println();
+//            throw new CustomException("Password does not meet security requirements");
+//        }
+//        UserDTO user = getUserDetails("UserId", Long.toString(userId));
+//        //settingPsswordmethod
+//        UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
+//        updateUserInternalDTO.setNewPassword(newPassword);
+//        updateUserInternalDTO.setUserId(user.getUserId());
+//        setUserDetailsInternally(updateUserInternalDTO);
+//    }
+ @Transactional
+public void updatePassword(Long userId, String newPassword) {
+     try {
+         logger.debug("Attempting to update password for userId: {}", userId);
+         UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
+         updateUserInternalDTO.setNewPassword(newPassword);
+         updateUserInternalDTO.setUserId(userId);
+         logger.info("Password updated successfully for userId: {}", userId);
+     } catch (Exception e) {
+         logger.error("Failed to update password for userId: {}, error: {}", userId, e.getMessage());
+         throw e; // Re-throw to be caught by the controller
+     }
+ }
 
     private boolean isValidPassword(String password) {
         // Example Password Validation Function
@@ -385,13 +485,19 @@ public class Auth implements AuthService, AuthHelper {
      * @return the generated OTP
      */
     public String generateAndStoreOtp(String phoneNumber) {
-        // For simplicity, using "123" as in original code
-        // In production, use a secure random generator
-        String otp = "123456";
-        otpStorage.put(phoneNumber, otp);
-        registrationOtpStorage.put(phoneNumber,otp);
+//        Random random = new Random();
+//        String otp = String.format("%06d", random.nextInt(900000) + 100000); // Generates 6-digit OTP (100000 to 999999)
+
+        String otp = "123456"; // Hardcoded OTP
+
+        Otpdata otpdata = new Otpdata();
+        otpdata.setOtp(otp);
+        otpdata.setPhoneNumber(phoneNumber);
+        otpdata.setExpiryTime(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).plus(5, ChronoUnit.MINUTES));
+        otpRepository.save(otpdata);
         return otp;
     }
+
     /**
      * Send verification email to user.
      *
@@ -422,28 +528,35 @@ public class Auth implements AuthService, AuthHelper {
      */
     public boolean verifyOtp(String phoneNumber, String otpEntered, Map<String, String> otpStorage) {
         // Check if phone number exists in the provided OTP storage
-        if (!otpStorage.containsKey(phoneNumber)) {
-            return false;
-        }
-
-        // Get stored OTP for the phone number
-        String storedOtp = otpStorage.get(phoneNumber);
-
-        // Compare entered OTP with stored OTP
-        if (storedOtp != null && storedOtp.equals(otpEntered)) {
+//        if (!otpStorage.containsKey(phoneNumber)) {
+//            return false;
+//        }
+//
+//        // Get stored OTP for the phone number
+//        String storedOtp = otpStorage.get(phoneNumber);
+//
+//        // Compare entered OTP with stored OTP
+//        if (storedOtp != null && storedOtp.equals(otpEntered)) {
+//            // Remove OTP from storage after successful verification
+//            otpStorage.remove(phoneNumber);
+//            return true;
+//        }
+//        return false;
+      Otpdata otpData = otpRepository.findByPhoneNumber(phoneNumber).orElse(null);
+       if (otpData != null && !otpData.isExpired() && otpData.getOtp().equals(otpEntered)) {
             // Remove OTP from storage after successful verification
-            otpStorage.remove(phoneNumber);
+           otpRepository.deleteById(otpData.getId());
             return true;
         }
         return false;
     }
-
     /**
      * Verify OTP for user login.
      */
     public boolean verifyLoginOtp(String phoneNumber, String otpEntered) {
         return verifyOtp(phoneNumber, otpEntered, otpStorage);
     }
+
 
     /**
      * Verify OTP for forget password.
@@ -460,7 +573,7 @@ public class Auth implements AuthService, AuthHelper {
     @Transactional
     public void updateUserLastLogin(UserDTO user) {
         UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
-        updateUserInternalDTO.setLastLogin(Timestamp.valueOf(LocalDateTime.now()));
+        updateUserInternalDTO.setLastLogin(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")));
         updateUserInternalDTO.setUserId(user.getUserId());
         setUserDetailsInternally(updateUserInternalDTO);
     }
@@ -490,12 +603,12 @@ public class Auth implements AuthService, AuthHelper {
     }
 
     public UserDTO getUserDetails(String key, String value) {
-         UserInternalUpdateEntity user = switch (key.toLowerCase()) {
-             case "username" -> userInternalUpdateRepository.findByUsername(value);
-             case "email" -> userInternalUpdateRepository.findByEmail(value);
-             case "phonenumber" -> userInternalUpdateRepository.findByPhoneNumber(value);
-             default -> throw new CustomException("Invalid key: " + key);
-         };
+        UserInternalUpdateEntity user = switch (key.toLowerCase()) {
+            case "username" -> userInternalUpdateRepository.findByUsername(value);
+            case "email" -> userInternalUpdateRepository.findByEmail(value);
+            case "phonenumber" -> userInternalUpdateRepository.findByPhoneNumber(value);
+            default -> throw new CustomException("Invalid key: " + key);
+        };
 
         if (user == null) {
             throw new CustomException("User not found with " + key + ": " + value);

@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Data
 @NoArgsConstructor
@@ -26,7 +25,7 @@ public class PropertyPriceChange {
     private Property property;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id",nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "old_price", precision = 15, scale = 2, nullable = false)
@@ -35,7 +34,11 @@ public class PropertyPriceChange {
     @Column(name = "new_price", precision = 15, scale = 2, nullable = false)
     private BigDecimal newPrice;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Timestamp createdAt;
+    private ZonedDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
 }

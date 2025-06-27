@@ -1,15 +1,13 @@
-
 package com.backend.karyanestApplication.Model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Data
@@ -21,37 +19,37 @@ public class Property {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Property ID (Primary Key)
+    private Long id;
 
     @Column(nullable = false)
-    private String title; // Property listing title
+    private String title;
 
     @Column(columnDefinition = "TEXT")
-    private String description; // Property description
+    private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "property_type", nullable = false)
-    private PropertyType propertyType; // Flat, Plot, Land, House
+    private PropertyType propertyType;
 
     @Enumerated(EnumType.STRING)
-    private Status status; // Available, Sold, Pending, Rented
+    private Status status;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "listing_type")
-    private ListingType listingType; // For Sale, For Rent, Lease
+    private ListingType listingType;
 
     @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal price; // Price of the property
+    private BigDecimal price;
 
     @Column(length = 10)
-    private String currency = "INR"; // Currency type
+    private String currency = "INR";
 
     @Column(name = "area_size", nullable = false, precision = 10, scale = 2)
-    private BigDecimal areaSize; // Property size
+    private BigDecimal areaSize;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "area_unit", nullable = false)
-    private AreaUnit areaUnit; // Sq. Ft, Sq. Yards, Acres, etc.
+    private AreaUnit areaUnit;
 
     private Integer bedrooms;
 
@@ -60,96 +58,89 @@ public class Property {
     private Integer balconies;
 
     @Enumerated(EnumType.STRING)
-    private FurnishedStatus furnishedStatus; // Furnished, Semi-Furnished, Unfurnished
+    private FurnishedStatus furnishedStatus;
 
-    private Integer parkingSpaces = 0; // Parking slots
+    private Integer parkingSpaces = 0;
 
-    private Integer floorNumber; // Floor number (for Flats)
+    private Integer floorNumber;
 
-    private Integer totalFloors; // Total floors in the building
-
-    @Enumerated(EnumType.STRING)
-    @Column()
-    private OwnershipType ownershipType; // Freehold, Leasehold, Cooperative
-
-    private String ageOfProperty; // Property age (e.g., "5 years")
+    private Integer totalFloors;
 
     @Enumerated(EnumType.STRING)
-    @Column()
-    private ConstructionStatus constructionStatus; // Under Construction, Ready to Move
+    private OwnershipType ownershipType;
+
+    private String ageOfProperty;
 
     @Enumerated(EnumType.STRING)
-    private FacingDirection facingDirection; // Property facing direction
+    private ConstructionStatus constructionStatus;
 
-    private BigDecimal roadWidth; // Width of the road in front
+    @Enumerated(EnumType.STRING)
+    private FacingDirection facingDirection;
 
-    private Boolean waterAvailability = true; // Water availability
+    private BigDecimal roadWidth;
 
-    private Boolean electricityAvailability = true; // Electricity availability
+    private Boolean waterAvailability = true;
 
-    private String securityFeatures; // Security features (e.g., CCTV)
+    private Boolean electricityAvailability = true;
 
     @Column(columnDefinition = "TEXT")
-    private String amenities; // List of amenities
+    private String securityFeatures;
 
     @Column(columnDefinition = "TEXT")
-    private String nearbyLandmarks; // Important landmarks nearby
+    private String amenities;
+
+    @Column(columnDefinition = "TEXT")
+    private String nearbyLandmarks;
 
     @Column(nullable = false)
-    private String locationAddress; // Full address
+    private String locationAddress;
 
-//    @Column(nullable = false, length = 100)
-    private String city; // City name
+    private String city;
 
-//    @Column(nullable = false, length = 100)
-    private String state; // State name
-//
-//    @Column(nullable = false, length = 100)
+    private String state;
+
     private String country;
 
-//    @Column(nullable = false, length = 10)
-    private String pincode; // Postal code
+    private String pincode;
 
-    private BigDecimal latitude; // Latitude for location
+    private BigDecimal latitude;
 
-    private BigDecimal longitude; // Longitude for location
+    private BigDecimal longitude;
 
-
-    private String videoUrl; // Video tour URL (if available)
-
+    private String videoUrl;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user; // Reference to user
+    private User user;
 
     @Enumerated(EnumType.STRING)
-    private VerificationStatus verificationStatus; // Pending, Verified, Rejected
+    private VerificationStatus verificationStatus;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt; // Timestamp when added
+    private ZonedDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt; // Timestamp when last updated
+    private ZonedDateTime updatedAt;
+
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Lead> leads;
+
+    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL)
+    private List<PropertyPriceChange> priceChanges = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
 
-    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Lead> leads; // Leads related to the property
-    @OneToMany(mappedBy = "property", cascade = CascadeType.ALL)
-    private List<PropertyPriceChange> priceChanges = new ArrayList<>();
-
-    // Enums
     public enum PropertyType {
-        FLAT, PLOT, LAND, HOUSE,VILLA,APARTMENT
+        FLAT, PLOT, LAND, HOUSE, VILLA, APARTMENT
     }
 
     public enum Status {
@@ -184,4 +175,3 @@ public class Property {
         PENDING, VERIFIED, REJECTED
     }
 }
-

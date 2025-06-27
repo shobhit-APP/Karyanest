@@ -2,8 +2,8 @@ package com.backend.karyanestApplication.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "lead_notes")
@@ -20,17 +20,17 @@ public class LeadNote {
     private Long noteId;
 
     @ManyToOne
-    @JoinColumn(name = "leadId", nullable = false)  // Fixed column name
+    @JoinColumn(name = "leadId", nullable = false)
     private Lead lead;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String note;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @Column(name = "updatedAt", nullable = false)
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     @Column(name = "noteadded_by_id")
     private Long agentId;
@@ -38,17 +38,14 @@ public class LeadNote {
     @Column(name = "noteadded_by")
     private String agentName;
 
-
-
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();  // Initialize updatedAt for new records
+        this.createdAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();  // Update timestamp on modification
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
-
 }

@@ -77,7 +77,7 @@ public class LeadNoteService {
     }
 
     public void deleteLeadNote(Long noteId) {
-      leadNoteRepository.deleteById(noteId);
+        leadNoteRepository.deleteById(noteId);
     }
 
     public LeadNote updateLeadNoteContent(Long noteId, String noteContent, Long leadId) {
@@ -91,7 +91,6 @@ public class LeadNoteService {
 
         // Update only the note content
         leadNote.setNote(noteContent);
-        leadNote.setUpdatedAt(LocalDateTime.now());
 
         // Ensure the lead and user remain the same
         leadNote.setLead(lead);

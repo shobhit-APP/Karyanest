@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -61,7 +62,7 @@ public class ChatService {
         }
         return false;
     }
-//   @Transactional
+    //   @Transactional
 //    public Conversation createChat(ChatRequest request, Long InitiatorId, Long ReceiverId) {
 //        Conversation conversation = new Conversation();
 //        conversation.setInitiatorId(InitiatorId);
@@ -106,40 +107,40 @@ public class ChatService {
 //
 //    return conversationRepository.save(conversation);
 //}
-@Transactional
-public Map<String, Object> createChat(ChatRequest request, Long initiatorId, Long receiverId) {
-    Conversation conversation;
+    @Transactional
+    public Map<String, Object> createChat(ChatRequest request, Long initiatorId, Long receiverId) {
+        Conversation conversation;
 
-    // 🔁 Reuse existing conversation if exists
-    if (request.getType().equals("PROPERTY_INQUIRY")) {
-        Optional<Conversation> existingConversation = conversationRepository
-                .findByPropertyIdAndInitiatorIdAndReceiverIdAndTypeAndStatus(
-                        request.getPropertyId(),
-                        initiatorId,
-                        receiverId,
-                        Conversation.ConversationType.valueOf(request.getType()),
-                        Conversation.ConversationStatus.OPEN
-                );
+        // 🔁 Reuse existing conversation if exists
+        if (request.getType().equals("PROPERTY_INQUIRY")) {
+            Optional<Conversation> existingConversation = conversationRepository
+                    .findByPropertyIdAndInitiatorIdAndReceiverIdAndTypeAndStatus(
+                            request.getPropertyId(),
+                            initiatorId,
+                            receiverId,
+                            Conversation.ConversationType.valueOf(request.getType()),
+                            Conversation.ConversationStatus.OPEN
+                    );
 
-        conversation = existingConversation.orElseGet(() -> createNewConversation(request, initiatorId, receiverId));
-    } else {
-        conversation = createNewConversation(request, initiatorId, receiverId);
+            conversation = existingConversation.orElseGet(() -> createNewConversation(request, initiatorId, receiverId));
+        } else {
+            conversation = createNewConversation(request, initiatorId, receiverId);
+        }
+
+        // 📥 Fetch property owner details from user service/repository
+        User propertyOwner = userService.findById(conversation.getPropertyOwnerId());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("conversationId", conversation.getId());
+        response.put("type", conversation.getType().toString());
+        response.put("status", conversation.getStatus().toString());
+        response.put("propertyId", conversation.getPropertyId());
+        response.put("propertyOwnerId", conversation.getPropertyOwnerId());
+        response.put("propertyOwnerName", propertyOwner.getFullName());
+        response.put("propertyOwnerProfile", propertyOwner.getProfilePicture()); // Assuming you have this field
+
+        return response;
     }
-
-    // 📥 Fetch property owner details from user service/repository
-    User propertyOwner = userService.findById(conversation.getPropertyOwnerId());
-
-    Map<String, Object> response = new HashMap<>();
-    response.put("conversationId", conversation.getId());
-    response.put("type", conversation.getType().toString());
-    response.put("status", conversation.getStatus().toString());
-    response.put("propertyId", conversation.getPropertyId());
-    response.put("propertyOwnerId", conversation.getPropertyOwnerId());
-    response.put("propertyOwnerName", propertyOwner.getFullName());
-    response.put("propertyOwnerProfile", propertyOwner.getProfilePicture()); // Assuming you have this field
-
-    return response;
-}
     private Conversation createNewConversation(ChatRequest request, Long initiatorId, Long receiverId) {
         // ⬇️ Create new if not found
         Conversation conversation = new Conversation();
@@ -403,7 +404,6 @@ public Map<String, Object> createChat(ChatRequest request, Long initiatorId, Lon
         message.setConversation(conversation);
         message.setSenderId(userId);
         message.setMessage(messageRequest.getMessage());
-        message.setTimestamp(LocalDateTime.now());
         if(role.equals("ROLE_ADMIN")) {
             updateReceiverIdIfAdminJoins(userId, messageRequest.getConversationId());
         }
@@ -440,7 +440,7 @@ public Map<String, Object> createChat(ChatRequest request, Long initiatorId, Lon
         return conversationRepository.existsByInitiatorIdOrReceiverIdAndId(userId,userId,conversationId);
     }
 
-    public List<Message> getMessagesAfterTimestamp(Long conversationId, LocalDateTime timestamp) {
+    public List<Message> getMessagesAfterTimestamp(Long conversationId, ZonedDateTime timestamp) {
         if (timestamp == null) {
             // If no timestamp is provided, fetch all messages of that conversation
             return messageRepository.findByConversationIdOrderByTimestampAsc(conversationId);

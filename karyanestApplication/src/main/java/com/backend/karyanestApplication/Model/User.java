@@ -4,10 +4,8 @@ import com.example.rbac.Model.Roles;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
-import java.sql.Timestamp;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Entity
@@ -30,11 +28,11 @@ public class User {
     private String fullName;
 
     @Email
-    @Column(name = "email", length = 255,nullable = false,unique = true)
+    @Column(name = "email", length = 255, nullable = false, unique = true)
     private String email;
 
     @Pattern(regexp = "^[0-9]{10,15}$")
-    @Column(name = "phone_number", length = 15,unique = true)
+    @Column(name = "phone_number", length = 15, unique = true)
     private String phoneNumber;
 
     @Size(min = 8, max = 255)
@@ -44,7 +42,7 @@ public class User {
     @Column(name = "profile_picture", length = 255)
     private String profilePicture;
 
-    @Column(name = "profile_picture_file_id", length = 255) // Added for Backblaze B2 file ID
+    @Column(name = "profile_picture_file_id", length = 255)
     private String profilePictureFileId;
 
     @Column(name = "address", length = 255)
@@ -73,25 +71,22 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private  UserStatus status;
+    private UserStatus status;
 
     @Column(name = "last_login")
-    private Timestamp lastLogin;
+    private ZonedDateTime lastLogin;
 
-    @CreationTimestamp
     @Column(name = "registration_date", nullable = false, updatable = false)
-    private Timestamp registrationDate;
+    private ZonedDateTime registrationDate;
 
     @Column(name = "preferences", columnDefinition = "JSON")
     private String preferences;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Timestamp createdAt;
+    private ZonedDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private Timestamp updatedAt;
+    private ZonedDateTime updatedAt;
 
     @ManyToOne
     @JoinColumn(name = "role_id", nullable = false)
@@ -100,10 +95,28 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Property> properties;
 
-    public User(String fullName, String phoneNumber, String profilePicture, String address, String city, String state, String country, String pincode, String preferences) {
-        this.fullName= fullName;
-//        this.lastName = lastName;
-        this.email = email;
+    @Column(name = "parent_code")
+    private Long parentCode;
+
+    @Column(name = "refer_code")
+    private String referCode;
+    @PrePersist
+    protected void onCreate() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        System.out.println("PrePersist setting timestamps to: " + now);
+        this.registrationDate = now;
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
+
+    public User(String fullName, String phoneNumber, String profilePicture, String address, String city,
+                String state, String country, String pincode, String preferences) {
+        this.fullName = fullName;
         this.phoneNumber = phoneNumber;
         this.profilePicture = profilePicture;
         this.address = address;
@@ -115,17 +128,14 @@ public class User {
     }
 
     public enum VerificationStatus {
-        Unverified, Verified, Rejected , Pending
+        Unverified, Verified, Rejected, Pending
     }
+
     public enum VerificationMethod {
         Email, Phone, Documents
     }
-    public  enum  UserStatus
-    {
-        Active, Inactive,Deleted, Blocked
+
+    public enum UserStatus {
+        Active, Inactive, Deleted, Blocked
     }
-    @Column(name = "parent_code")
-    private Long parentCode;
-    @Column(name = "refer_code")
-    private String referCode;
 }

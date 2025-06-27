@@ -2,8 +2,8 @@ package com.backend.karyanestApplication.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Entity
@@ -17,9 +17,9 @@ public class Lead {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="Id",nullable = false)
+    @Column(name = "Id", nullable = false)
     private Long Id;
-    
+
     @Column(name = "leadDetails", columnDefinition = "TEXT")
     private String leadDetails;
 
@@ -55,10 +55,10 @@ public class Lead {
     private String AssignedBy;
 
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     @Column(length = 255)
     private String source;
@@ -66,24 +66,25 @@ public class Lead {
     @Column(nullable = false)
     private boolean isArchived = false;
 
-    @OneToMany(mappedBy = "lead", cascade = CascadeType.ALL, orphanRemoval = true)  // Fixed mapping
+    @OneToMany(mappedBy = "lead", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LeadNote> leadNotes;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.createdAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
 
     public enum LeadStatus {
         NEW, CONTACTED, INTERESTED, CLOSED_DEAL, LOST_LEAD
     }
-    // Getters and setters
+
+    // Explicit getters and setters for isArchived
     public boolean isArchived() {
         return isArchived;
     }

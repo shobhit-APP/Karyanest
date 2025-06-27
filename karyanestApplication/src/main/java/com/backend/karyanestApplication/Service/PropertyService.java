@@ -76,13 +76,11 @@ public class PropertyService {
             property = new com.backend.karyanestApplication.Model.Property();
             mapPropertyDTOToEntity(propertyDTO, property);
             property.setStatus(com.backend.karyanestApplication.Model.Property.Status.DRAFT);
-            property.setCreatedAt(LocalDateTime.now());
             property.setUser(user);
             property.setCurrency("INR");
             property.setCountry("India");
         }
 
-        property.setUpdatedAt(LocalDateTime.now());
         com.backend.karyanestApplication.Model.Property savedProperty = propertyRepository.save(property);
         return convertToResponseDTO(savedProperty);
     }

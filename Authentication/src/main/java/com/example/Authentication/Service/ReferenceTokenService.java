@@ -15,7 +15,7 @@ public class ReferenceTokenService {
     // Stores the expiration time of each reference token
     private final Map<String, Long> expirationStore = new ConcurrentHashMap<>();
     // Defines the token expiration time (1 hour in milliseconds)
-    @Value("${referenceToken.expiration}")
+    @Value("${referenceToken.expiration:31536000000}")
     private long EXPIRATION_TIME_MILLIS; // 1 hour
 
     /**

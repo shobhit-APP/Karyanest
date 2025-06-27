@@ -2,7 +2,8 @@ package com.backend.karyanestApplication.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "FAQs")
@@ -30,21 +31,22 @@ public class FAQ {
     private Status status = Status.active;
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private ZonedDateTime createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private ZonedDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        createdAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+        updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
+
     public enum Status {
         active,
         inactive

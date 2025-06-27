@@ -4,10 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Data
 @NoArgsConstructor
@@ -21,11 +20,11 @@ public class Transaction {
     @Column(name = "id", nullable = false, unique = true)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)  // Optimized for performance
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)  // Prevents unnecessary data loading
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
@@ -40,9 +39,13 @@ public class Transaction {
     @Column(name = "status", nullable = false)
     private TransactionStatus status;
 
-    @CreationTimestamp  // Automatically sets timestamp
     @Column(name = "transaction_date", nullable = false, updatable = false)
-    private Timestamp transactionDate;
+    private ZonedDateTime transactionDate;
+
+    @PrePersist
+    protected void onCreate() {
+        this.transactionDate = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+    }
 
     public enum TransactionType {
         SALE, RENT, DEPOSIT, COMMISSION
