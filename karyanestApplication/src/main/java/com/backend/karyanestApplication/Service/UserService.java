@@ -550,6 +550,7 @@ import com.backend.karyanestApplication.DTO.UserRegistrationDTO;
 import com.backend.karyanestApplication.DTO.UserResponseDTO;
 import com.backend.karyanestApplication.Model.User;
 import com.backend.karyanestApplication.Repositry.*;
+import com.example.Authentication.Service.OtpService;
 import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
 import com.example.rbac.Model.Roles;
 import com.example.Authentication.Service.Auth;
@@ -578,7 +579,8 @@ public class UserService {
     public enum Phase {
         LOGIN, REGISTRATION
     }
-
+    @Autowired
+    private OtpService otpService;
     @Autowired
     private UserRepo userRepo;
 
@@ -744,7 +746,7 @@ public class UserService {
         logger.debug("Fetching user by username: {}", username);
         User user = userRepo.findByUsername(username);
         if (user == null) {
-            logger.warn("User not found for username: {}", username);
+            logger.warn("User not found with this username: {}", username);
         }
         return user;
     }
@@ -754,7 +756,7 @@ public class UserService {
         logger.debug("Fetching user ID by username: {}", username);
         User user = userRepo.findByUsername(username);
         if (user == null) {
-            logger.warn("User not found for username: {}", username);
+            logger.warn("User not found username: {}", username);
             return null;
         }
         return user.getId();
@@ -974,7 +976,7 @@ public class UserService {
             String verificationUrl;
 
             if (user.getVerificationMethod() == User.VerificationMethod.Phone) {
-                String otp = auth.generateAndStoreOtp(user.getPhoneNumber());
+                String otp = otpService.generateAndStoreOtp(user.getPhoneNumber());
                 verificationType = "SMS";
                 verificationUrl = "https://nestaro.in/v1/auth/verify-user-otp";
                 logger.info("Generated OTP for phone verification for user: {}", user.getPhoneNumber());

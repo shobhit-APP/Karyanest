@@ -3,7 +3,9 @@ package com.example.Authentication.Controller;
 import com.example.Authentication.Component.UserContext;
 import com.example.Authentication.DTO.JWTUserDTO;
 import com.example.Authentication.Service.Auth;
+import com.example.Authentication.Service.UserHandleService;
 import com.example.Authentication.UTIL.JwtUtil;
+import com.example.module_b.ExceptionAndExceptionHandler.CustomException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -28,6 +30,8 @@ public class RestPasswordControllerByToken {
     private UserContext userContext;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private UserHandleService userHandleService;
 
     /**
      * Complete password reset using token (for email method)
@@ -57,11 +61,15 @@ public class RestPasswordControllerByToken {
             }
 
             logger.debug("Attempting to update password for user ID: {}", user.getUserId());
-            auth.updatePassword(user.getUserId(), newPassword);
+
+            userHandleService.updatePassword(user.getUserId(), newPassword);
             logger.info("Password successfully updated for user ID: {}", user.getUserId());
 
             return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
 
+        }  catch (CustomException e) {
+            logger.error("Password validation failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         } catch (IllegalArgumentException e) {
             logger.error("Invalid user error for token: {}, error: {}", token, e.getMessage());
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid user: " + e.getMessage()));

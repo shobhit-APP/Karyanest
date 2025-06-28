@@ -1,8 +1,9 @@
 package com.example.Authentication.Service;
-import com.example.Authentication.Controller.AuthController;
 import com.example.Authentication.DTO.AuthResponseDTO;
 import com.example.Authentication.DTO.UpdateUserInternalDTO;
 import com.example.Authentication.DTO.UserDTO;
+import com.example.Authentication.Interface.AuthHelper;
+import com.example.Authentication.Interface.AuthService;
 import com.example.Authentication.Model.Otpdata;
 import com.example.Authentication.Model.PasswordResetToken;
 import com.example.Authentication.Model.UserInternalUpdateEntity;
@@ -15,15 +16,11 @@ import com.example.Authentication.Repositery.PasswordResetTokenRepository;
 import com.example.rbac.Model.RolesPermission;
 import com.example.rbac.Repository.RolesPermissionRepository;
 import com.example.rbac.Repository.RolesRepository;
-import com.twilio.Twilio;
-import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
-import com.twilio.rest.api.v2010.account.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,13 +28,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
-import com.twilio.type.PhoneNumber;
 
 
-import java.io.IOException;
-import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -45,12 +38,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class Auth implements AuthService, AuthHelper,OtpService {
+public class Auth implements AuthService, AuthHelper {
     // Configuration constants
     private static final String VERIFICATION_LINK_TEMPLATE = "https://nestaro.in/v1/auth/verify";
     private final SmsService sendOtpViaSms;
-    @Autowired
-    private final OtpRepository otpRepository;
+    private final UserHandleService userHandleService;
+
     // Dependencies
     private static final Logger logger = LoggerFactory.getLogger(Auth.class);
     private final AuthenticationManager authenticationManager;
@@ -63,11 +56,9 @@ public class Auth implements AuthService, AuthHelper,OtpService {
     private final RolesPermissionRepository rolesPermissionRepository;
     private final RedisService redisService;
     @Autowired
+    private OtpService otpService;
+    @Autowired
     private UserInternalUpdateRepository userInternalUpdateRepository;
-    // In-memory OTP storage
-    private final Map<String, String> otpStorage = new HashMap<>();
-    // In-memory registration OTP storage (separate from login OTP)
-    private final Map<String, String> registrationOtpStorage = new HashMap<>();
     public enum LoginMethod {
         EMAIL, PHONE, USERNAME
     }
@@ -75,7 +66,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
     // Constructor with all required dependencies
     @Autowired
     public Auth(
-            SmsService sendOtpViaSms, OtpRepository otpRepository, AuthenticationManager authenticationManager,
+            SmsService sendOtpViaSms, UserHandleService userHandleService, AuthenticationManager authenticationManager,
             RestTemplate restTemplate,
             EmailService emailService,
             PasswordResetTokenRepository passwordResetTokenRepository,
@@ -84,7 +75,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
             ReferenceTokenService referenceTokenService,
             RolesPermissionRepository rolesPermissionRepository, RedisService redisService) {
             this.sendOtpViaSms = sendOtpViaSms;
-        this.otpRepository = otpRepository;
+        this.userHandleService = userHandleService;
 
         this.authenticationManager = authenticationManager;
         this.restTemplate = restTemplate;
@@ -145,7 +136,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
         // Authenticate user
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginIdentifier, password));
         // Return user object
-        return getUserDetails("username", loginIdentifier);
+        return userHandleService.getUserDetails("username", loginIdentifier);
     }
 
     @Override
@@ -168,7 +159,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
             }
 
             // Generate and store OTP
-            String otp = generateAndStoreOtp(phoneNumber);
+            String otp = otpService.generateAndStoreOtp(phoneNumber);
 
             if (otp == null || otp.isEmpty()) {
                 logger.error("Failed to generate OTP for phone: {}", phoneNumber);
@@ -246,7 +237,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
 
     @Override
     public String loginWithEmail(String email) {
-        UserDTO user = getUserDetails("email", email);
+        UserDTO user = userHandleService.getUserDetails("email", email);
         String loginIdentifier = user.getUsername();
         if (loginIdentifier == null) {
             throw new AuthenticationException("Invalid email") {
@@ -257,7 +248,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
 
     @Override
     public String loginWithPhone(String PhoneNumber) {
-        UserDTO user = getUserDetails("phoneNumber", PhoneNumber);
+        UserDTO user = userHandleService.getUserDetails("phoneNumber", PhoneNumber);
         String loginIdentifier = user.getUsername();
         if (loginIdentifier == null) {
             throw new AuthenticationException("Invalid phone number") {
@@ -268,7 +259,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
 
     @Override
     public ResponseEntity<?> loginWithPhoneAndOtp(String Phone) {
-        UserDTO user = getUserDetails("phoneNumber", Phone);
+        UserDTO user = userHandleService.getUserDetails("phoneNumber", Phone);
         if (user == null) {
             throw new CustomException("User not found with phone number:" + Phone);
         }
@@ -289,9 +280,9 @@ public class Auth implements AuthService, AuthHelper,OtpService {
             throw new CustomException("Invalid identification method");
         }
         return switch (loginMethod) {
-            case USERNAME -> getUserDetails("username", username);
-            case EMAIL -> getUserDetails("email", email);
-            case PHONE -> getUserDetails("phoneNumber", phoneNumber);
+            case USERNAME -> userHandleService.getUserDetails("username", username);
+            case EMAIL -> userHandleService.getUserDetails("email", email);
+            case PHONE -> userHandleService.getUserDetails("phoneNumber", phoneNumber);
         };
     }
 
@@ -338,7 +329,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
         } else {
             key = "username";
         }
-        UserDTO users = getUserDetails(key, input);
+        UserDTO users = userHandleService.getUserDetails(key, input);
         Long userId = users.getUserId();
         boolean isInRedis = redisService.isUserBlocked(userId);
         if (Objects.equals(users.getStatus(), "Blocked")) {
@@ -402,7 +393,7 @@ public class Auth implements AuthService, AuthHelper,OtpService {
 
         if (Objects.equals(user.getVerificationMethod(), "Phone")) {
             // Phone verification scenario
-            String otp = generateAndStoreOtp(user.getPhoneNumber());
+            String otp = otpService.generateAndStoreOtp(user.getPhoneNumber());
             // Here you would integrate with SMS service to send the OTP
             verificationType = "SMS";
             verificationUrl = "https://nestaro.in/v1/auth/verify-user-otp";
@@ -443,25 +434,6 @@ public class Auth implements AuthService, AuthHelper,OtpService {
 //        updateUserInternalDTO.setUserId(user.getUserId());
 //        setUserDetailsInternally(updateUserInternalDTO);
 //    }
- @Transactional
-public void updatePassword(Long userId, String newPassword) {
-     try {
-         logger.debug("Attempting to update password for userId: {}", userId);
-         UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
-         updateUserInternalDTO.setNewPassword(newPassword);
-         updateUserInternalDTO.setUserId(userId);
-         logger.info("Password updated successfully for userId: {}", userId);
-     } catch (Exception e) {
-         logger.error("Failed to update password for userId: {}, error: {}", userId, e.getMessage());
-         throw e; // Re-throw to be caught by the controller
-     }
- }
-
-    private boolean isValidPassword(String password) {
-        // Example Password Validation Function
-        return password.length() >= 8 && password.matches(".*[A-Z].*") && password.matches(".*\\d.*");
-    }
-
     public Long verifyToken(String token) {
         PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token);
 
@@ -475,27 +447,6 @@ public void updatePassword(Long userId, String newPassword) {
         }
 
         return resetToken.getUserId();
-    }
-
-
-    /**
-     * Generate and store OTP for login
-     *
-     * @param phoneNumber the user's phone number
-     * @return the generated OTP
-     */
-    public String generateAndStoreOtp(String phoneNumber) {
-//        Random random = new Random();
-//        String otp = String.format("%06d", random.nextInt(900000) + 100000); // Generates 6-digit OTP (100000 to 999999)
-
-        String otp = "123456"; // Hardcoded OTP
-
-        Otpdata otpdata = new Otpdata();
-        otpdata.setOtp(otp);
-        otpdata.setPhoneNumber(phoneNumber);
-        otpdata.setExpiryTime(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")).plus(5, ChronoUnit.MINUTES));
-        otpRepository.save(otpdata);
-        return otp;
     }
 
     /**
@@ -517,54 +468,6 @@ public void updatePassword(Long userId, String newPassword) {
             throw new CustomException("Failed to send verification email: " + e.getMessage());
         }
     }
-
-    /**
-     * Generic method to verify OTP for both login and registration.
-     *
-     * @param phoneNumber the phone number to verify OTP against
-     * @param otpEntered the OTP entered by the user
-     * @param otpStorage the storage map where OTPs are stored
-     * @return boolean indicating if OTP is valid
-     */
-    public boolean verifyOtp(String phoneNumber, String otpEntered, Map<String, String> otpStorage) {
-        // Check if phone number exists in the provided OTP storage
-//        if (!otpStorage.containsKey(phoneNumber)) {
-//            return false;
-//        }
-//
-//        // Get stored OTP for the phone number
-//        String storedOtp = otpStorage.get(phoneNumber);
-//
-//        // Compare entered OTP with stored OTP
-//        if (storedOtp != null && storedOtp.equals(otpEntered)) {
-//            // Remove OTP from storage after successful verification
-//            otpStorage.remove(phoneNumber);
-//            return true;
-//        }
-//        return false;
-      Otpdata otpData = otpRepository.findByPhoneNumber(phoneNumber).orElse(null);
-       if (otpData != null && !otpData.isExpired() && otpData.getOtp().equals(otpEntered)) {
-            // Remove OTP from storage after successful verification
-           otpRepository.deleteById(otpData.getId());
-            return true;
-        }
-        return false;
-    }
-    /**
-     * Verify OTP for user login.
-     */
-    public boolean verifyLoginOtp(String phoneNumber, String otpEntered) {
-        return verifyOtp(phoneNumber, otpEntered, otpStorage);
-    }
-
-
-    /**
-     * Verify OTP for forget password.
-     */
-    public boolean verifyOtp(String phoneNumber, String otpEntered) {
-        return verifyOtp(phoneNumber, otpEntered, otpStorage);
-    }
-
     /**
      * Update user's last login time.
      *
@@ -575,7 +478,7 @@ public void updatePassword(Long userId, String newPassword) {
         UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
         updateUserInternalDTO.setLastLogin(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")));
         updateUserInternalDTO.setUserId(user.getUserId());
-        setUserDetailsInternally(updateUserInternalDTO);
+        userHandleService.setUserDetailsInternally(updateUserInternalDTO);
     }
 
     /**
@@ -596,68 +499,9 @@ public void updatePassword(Long userId, String newPassword) {
             UpdateUserInternalDTO updateUserInternalDTO = new UpdateUserInternalDTO();
             updateUserInternalDTO.setUserId(user.getUserId());
 
-            setUserDetailsInternally(updateUserInternalDTO);
+            userHandleService.setUserDetailsInternally(updateUserInternalDTO);
         } catch (Exception e) {
             throw new CustomException("Error verifying user: " + e.getMessage());
-        }
-    }
-
-    public UserDTO getUserDetails(String key, String value) {
-        UserInternalUpdateEntity user = switch (key.toLowerCase()) {
-            case "username" -> userInternalUpdateRepository.findByUsername(value);
-            case "email" -> userInternalUpdateRepository.findByEmail(value);
-            case "phonenumber" -> userInternalUpdateRepository.findByPhoneNumber(value);
-            default -> throw new CustomException("Invalid key: " + key);
-        };
-
-        if (user == null) {
-            throw new CustomException("User not found with " + key + ": " + value);
-        }
-
-        UserDTO userDTO = new UserDTO();
-        userDTO.setUserId(user.getUserId());
-        userDTO.setEmail(user.getEmail());
-        userDTO.setUsername(user.getUsername());
-        userDTO.setFullName(user.getFullName());
-        userDTO.setPassword(user.getPassword());
-        userDTO.setPhoneNumber(user.getPhoneNumber());
-        if (user.getRole() != null) {
-            userDTO.setRole(user.getRole().getName());
-            userDTO.setRoleId(user.getRole().getId());
-        }
-        if (user.getVerificationStatus() != null) {
-            userDTO.setVerificationStatus(user.getVerificationStatus().toString());
-        }
-        if (user.getVerificationMethod() != null) {
-            userDTO.setVerificationMethod(user.getVerificationMethod().toString());
-        }
-        if (user.getStatus() != null) {
-            userDTO.setStatus(user.getStatus().toString());
-        }
-
-        return userDTO;
-    }
-
-    public void setUserDetailsInternally(UpdateUserInternalDTO updateDto) {
-        Optional<UserInternalUpdateEntity> optionalUser = userInternalUpdateRepository.findById(updateDto.getUserId());
-        if (optionalUser.isPresent()) {
-            UserInternalUpdateEntity user = optionalUser.get();
-
-            if (updateDto.getStatus() != null) {
-                user.setStatus(UserInternalUpdateEntity.UserStatus.valueOf(updateDto.getStatus()));
-            }
-            if (updateDto.getNewPassword() != null) {
-                user.setPassword(updateDto.getNewPassword());
-            }
-            if (updateDto.getVerificationStatus() != null) {
-                user.setVerificationStatus(UserInternalUpdateEntity.VerificationStatus.valueOf(updateDto.getVerificationStatus()));
-            }
-            if (updateDto.getLastLogin() != null) {
-                user.setLastLogin(updateDto.getLastLogin());
-            }
-            userInternalUpdateRepository.save(user);
-        } else {
-            throw new RuntimeException("User not found with ID: " + updateDto.getUserId());
         }
     }
     /**
@@ -687,7 +531,7 @@ public void updatePassword(Long userId, String newPassword) {
         System.out.println(user.getUserId());
         updateUserInternalDTO.setUserId(user.getUserId());
         updateUserInternalDTO.setStatus("Active");
-        setUserDetailsInternally(updateUserInternalDTO);
+        userHandleService.setUserDetailsInternally(updateUserInternalDTO);
         // Generate and return response
         AuthResponseDTO authResponse = getJwtResponse(jwtToken, refreshToken, UserRole);
         return ResponseEntity.ok(authResponse);
@@ -705,22 +549,6 @@ public void updatePassword(Long userId, String newPassword) {
         // Return JWT response with permissions
         return new AuthResponseDTO(jwtToken, refreshToken, userRole);
     }
-    /**
-     * Verify OTP for user registration.
-     */
-    public boolean verifyRegistrationOtp(String phoneNumber, String otpEntered) {
-        boolean isValid = verifyOtp(phoneNumber, otpEntered, registrationOtpStorage);
 
-        if (isValid) {
-            // Update user verification status
-            UserDTO user = getUserDetails("phoneNumber",phoneNumber);
-            if (user != null) {
-                UpdateUserInternalDTO updateUserInternalDTO=new UpdateUserInternalDTO();
-                updateUserInternalDTO.setUserId(user.getUserId());
-                updateUserInternalDTO.setVerificationStatus("Verified");
-                setUserDetailsInternally(updateUserInternalDTO);
-            }
-        }
-        return isValid;
-    }
+
 }

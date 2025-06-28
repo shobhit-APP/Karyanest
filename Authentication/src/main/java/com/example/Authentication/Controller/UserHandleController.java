@@ -19,9 +19,6 @@ import java.util.Set;
 public class UserHandleController {
 
     @Autowired
-    private Auth auth;
-
-    @Autowired
     private RedisService redisService;
 
     @Autowired
@@ -69,7 +66,7 @@ public class UserHandleController {
             return ResponseEntity.badRequest().body(Map.of("error", "Key and value are required"));
         }
 
-        UserDTO user = auth.getUserDetails(key, value);
+        UserDTO user = userHandleService.getUserDetails(key, value);
         if (user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
         }

@@ -16,7 +16,7 @@ public class MyUserDetailsService implements UserDetailsService {
     private static final Logger logger = LoggerFactory.getLogger(MyUserDetailsService.class);
 
     @Autowired
-    private Auth auth;
+    private UserHandleService userHandleService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -25,7 +25,7 @@ public class MyUserDetailsService implements UserDetailsService {
             throw new UsernameNotFoundException("Username must not be empty.");
         }
 
-        UserDTO user = auth.getUserDetails("username", username);
+        UserDTO user = userHandleService.getUserDetails("username", username);
 
         if (user == null) {
             logger.warn("User not found: {}", username);

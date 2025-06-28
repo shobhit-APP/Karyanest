@@ -260,7 +260,7 @@ public class AccountController {
 
             userService.updateAvatar(user.getId(), fileVersion.getFileName(), fileVersion.getFileId());
 
-            return ResponseEntity.ok(Map.of("message", "Avatar uploaded: " + fileVersion.getFileName()));
+            return ResponseEntity.ok(Map.of("message", fileVersion.getFileName()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Upload failed: " + e.getMessage()));
