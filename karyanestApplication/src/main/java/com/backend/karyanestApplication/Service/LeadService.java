@@ -165,6 +165,7 @@ public LeadResponseDTO convertToResponseDTO(Lead lead) {
                     responseDTO.setArchived(lead.isArchived());
                     responseDTO.setCreatedAt(lead.getCreatedAt());
                     responseDTO.setUpdatedAt(lead.getUpdatedAt());
+                    responseDTO.setAddedBy(lead.getAddedBy());
 
                     // Manually map each note
                     List<LeadNoteResponseDTO> leadNoteResponseDTOList = lead.getLeadNotes().stream()
