@@ -124,7 +124,6 @@ public class AccountController {
         // ✅ LinkedHashMap for ordered entries
         Map<String, Object> responseBody = new LinkedHashMap<>();
         responseBody.put("user", userDTO);            // First item
-        responseBody.put("role", authResponse.getRole());
 
         // ✅ Final Response return karein
         return ResponseEntity.ok(responseBody);

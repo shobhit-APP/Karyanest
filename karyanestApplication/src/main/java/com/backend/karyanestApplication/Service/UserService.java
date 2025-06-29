@@ -817,6 +817,8 @@ public class UserService {
                 .pincode(user.getPincode())
                 .parent_code(user.getParentCode())
                 .referCode(user.getReferCode())
+                .role_id(user.getRole().getId())
+//                .Password(user.getPassword())//skip password to send
                 .preferences(user.getPreferences())
                 .verificationStatus(user.getVerificationStatus())
                 .verificationMethod(user.getVerificationMethod())
