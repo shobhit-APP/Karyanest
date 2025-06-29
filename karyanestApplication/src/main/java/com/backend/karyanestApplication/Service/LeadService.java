@@ -23,14 +23,11 @@ public class LeadService {
     private static final Logger log = LoggerFactory.getLogger(LeadService.class);
     private final LeadRepository leadRepository;
     private final UserService userService;
-
-    private final LeadNoteService leadNoteService;
     private final PropertyRepository propertyRepository;
 
-    public LeadService(LeadRepository leadRepository, UserService userService, LeadNoteService leadNoteService, PropertyRepository propertyRepository) {
+    public LeadService(LeadRepository leadRepository, UserService userService, PropertyRepository propertyRepository) {
         this.leadRepository = leadRepository;
         this.userService = userService;
-        this.leadNoteService = leadNoteService;
         this.propertyRepository = propertyRepository;
     }
 
@@ -59,8 +56,8 @@ public class LeadService {
             for (LeadNoteDTO noteDTO : leadDTO.getLeadNotes()) {
                 LeadNote leadNote = new LeadNote();
                 leadNote.setNote(noteDTO.getNote());
-                leadNote.setAgentId(leadDTO.getAgentId());
-                leadNote.setAgentName(user.getFullname());
+                leadNote.setNoteAddedById(user.getUserId());
+                leadNote.setNoteAddedBy(user.getFullname());
                 leadNote.setLead(lead);// establish foreign key relation
                 lead.getLeadNotes().add(leadNote);
             }
@@ -70,7 +67,7 @@ public class LeadService {
         // Fetch Admin (Throw exception if not found)
         User admin = userService.findById(user.getUserId());
         lead.setAdmin(admin);
-        lead.setAssignedBy(admin.getFullName());
+        lead.setAddedBy(admin.getFullName());
 
         // Set default status
         lead.setStatus(leadDTO.getStatus() != null ? Lead.LeadStatus.valueOf(leadDTO.getStatus().name()) : Lead.LeadStatus.NEW);
@@ -126,12 +123,29 @@ public LeadResponseDTO convertToResponseDTO(Lead lead) {
     responseDTO.setOwner_id(lead.getAdmin() != null ? lead.getAdmin().getId() : null);
     responseDTO.setSource(lead.getSource());
     responseDTO.setArchived(lead.isArchived());
+    responseDTO.setUpdatedAt(lead.getUpdatedAt());
+    responseDTO.setCreatedAt(lead.getCreatedAt());
+    responseDTO.setAddedBy(lead.getAddedBy());
+    // Manually map each lead note with null checks
+    List<LeadNoteResponseDTO> leadNoteResponseDTOList = lead.getLeadNotes().stream()
+            .map(note -> {
+                LeadNoteResponseDTO dto = new LeadNoteResponseDTO();
+                dto.setNoteId(note.getNoteId());
+                dto.setNote(note.getNote() != null ? note.getNote() : "");
+                dto.setNoteadded_by(note.getNoteAddedBy()!= null ? note.getNoteAddedBy() : null);
+                dto.setNoteadded_by_id(note.getNoteAddedById()!=null?note.getNoteAddedById():null);
+                dto.setCreatedAt(note.getCreatedAt() != null ? note.getCreatedAt() : null);
+                dto.setUpdatedAt(note.getUpdatedAt() != null ? note.getUpdatedAt() : null);
+                dto.setLeadId(note.getLead() != null ? note.getLead().getId() : null);
+                return dto;
+            })
+            .collect(Collectors.toList());
 
-    // Set all notes
-    List<LeadNoteResponseDTO> leadNoteResponseDTOList=leadNoteService.convertToDTOList(lead.getLeadNotes());
-    responseDTO.setLeadNotesList(leadNoteResponseDTOList);
+    responseDTO.setLeadNotesList(leadNoteResponseDTOList.isEmpty() ? null : leadNoteResponseDTOList);
+
     responseDTO.setStatus(LeadResponseDTO.LeadStatus.valueOf(lead.getStatus().name()));
     responseDTO.setAssignedBy(lead.getAssignedBy());
+
     return responseDTO;
 }
     public List<LeadResponseDTO> convertToResponseDTOList(List<Lead> leads) {
@@ -149,16 +163,38 @@ public LeadResponseDTO convertToResponseDTO(Lead lead) {
                     responseDTO.setOwner_id(lead.getAdmin() != null ? lead.getAdmin().getId() : null);
                     responseDTO.setSource(lead.getSource());
                     responseDTO.setArchived(lead.isArchived());
-                    List<LeadNoteResponseDTO> leadNoteResponseDTOList=leadNoteService.convertToDTOList(lead.getLeadNotes());
-                    responseDTO.setLeadNotesList(leadNoteResponseDTOList.isEmpty() ? null :leadNoteResponseDTOList); //All
+                    responseDTO.setCreatedAt(lead.getCreatedAt());
+                    responseDTO.setUpdatedAt(lead.getUpdatedAt());
+
+                    // Manually map each note
+                    List<LeadNoteResponseDTO> leadNoteResponseDTOList = lead.getLeadNotes().stream()
+                            .map(note -> {
+                                LeadNoteResponseDTO dto = new LeadNoteResponseDTO();
+                                dto.setNoteId(note.getNoteId());
+                                dto.setNote(note.getNote() != null ? note.getNote() : "");
+                                dto.setNoteadded_by(note.getNoteAddedBy() != null ? note.getNoteAddedBy(): null);
+                                dto.setNoteadded_by_id(note.getNoteAddedById() != null ? note.getNoteAddedById(): null);
+                                dto.setCreatedAt(note.getCreatedAt() != null ? note.getCreatedAt() : null);
+                                dto.setUpdatedAt(note.getUpdatedAt() != null ? note.getUpdatedAt() : null);
+                                dto.setLeadId(note.getLead() != null ? note.getLead().getId() : null);
+                                return dto;
+                            })
+                            .collect(Collectors.toList());
+
+                    responseDTO.setLeadNotesList(leadNoteResponseDTOList.isEmpty() ? null : leadNoteResponseDTOList);
+
                     responseDTO.setStatus(LeadResponseDTO.LeadStatus.valueOf(lead.getStatus().name()));
                     responseDTO.setAssignedBy(lead.getAssignedBy());
-                    responseDTO.setAssignedTo(lead.getAgent() != null ?
-                            userService.findById(lead.getAgent().getId()).getFullName() : null);
+                    responseDTO.setAssignedTo(
+                            lead.getAgent() != null
+                                    ? userService.findById(lead.getAgent().getId()).getFullName()
+                                    : null
+                    );
                     return responseDTO;
                 })
                 .collect(Collectors.toList());
     }
+
     public Lead getLeadById(Long id) {
         return leadRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lead not found with ID: " + id));

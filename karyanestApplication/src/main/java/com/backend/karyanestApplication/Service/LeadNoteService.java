@@ -36,8 +36,8 @@ public class LeadNoteService {
 
     public LeadNote addLeadNote(LeadNote leadNote, Lead lead ,JWTUserDTO user) {
         leadNote.setLead(lead);
-        leadNote.setAgentName(user.getFullname());
-        leadNote.setAgentId(user.getUserId());
+        leadNote.setNoteAddedBy(user.getFullname());
+        leadNote.setNoteAddedById(user.getUserId());
         return leadNoteRepository.save(leadNote);
     }
 
@@ -59,8 +59,8 @@ public class LeadNoteService {
         dto.setNoteId(leadNote.getNoteId());
         dto.setLeadId(leadNote.getLead().getId());// Assuming Lead has a getName() method
         dto.setNote(leadNote.getNote());
-        dto.setNoteadded_by_id(leadNote.getAgentId() == null ? null : leadNote.getAgentId());
-        dto.setNoteadded_by(leadNote.getAgentName() == null ? null : leadNote.getAgentName());
+        dto.setNoteadded_by_id(leadNote.getNoteAddedById() == null ? null : leadNote.getNoteAddedById());
+        dto.setNoteadded_by(leadNote.getNoteAddedBy()== null ? null : leadNote.getNoteAddedBy());
         return dto;
     }
 
@@ -110,8 +110,8 @@ public class LeadNoteService {
         LeadNote leadNote = new LeadNote();
         leadNote.setNote(noteText);
         leadNote.setLead(lead);
-        leadNote.setAgentName(user.getFullname());
-        leadNote.setAgentId(user.getUserId());
+        leadNote.setNoteAddedBy(user.getFullname());
+        leadNote.setNoteAddedById(user.getUserId());
         return leadNoteRepository.save(leadNote);
     }
 
@@ -124,8 +124,8 @@ public class LeadNoteService {
             LeadNote leadNote = new LeadNote();
             leadNote.setNote(note);
             leadNote.setLead(lead);
-            leadNote.setAgentName(user.getFullname());
-            leadNote.setAgentId(user.getUserId());
+            leadNote.setNoteAddedBy(user.getFullname());
+            leadNote.setNoteAddedById(user.getUserId());
             savedNotes.add(leadNoteRepository.save(leadNote));
         }
         return savedNotes;

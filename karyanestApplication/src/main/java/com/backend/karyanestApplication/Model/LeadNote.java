@@ -33,10 +33,10 @@ public class LeadNote {
     private ZonedDateTime updatedAt;
 
     @Column(name = "noteadded_by_id")
-    private Long agentId;
+    private Long NoteAddedById;
 
     @Column(name = "noteadded_by")
-    private String agentName;
+    private String NoteAddedBy;
 
     @PrePersist
     protected void onCreate() {

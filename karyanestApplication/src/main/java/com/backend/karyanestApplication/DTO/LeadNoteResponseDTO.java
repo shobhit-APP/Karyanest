@@ -2,9 +2,7 @@ package com.backend.karyanestApplication.DTO;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.Column;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
@@ -12,6 +10,8 @@ import java.time.ZonedDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class LeadNoteResponseDTO {
     private Long noteId;
     private Long leadId;

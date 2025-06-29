@@ -54,7 +54,8 @@ public class LeadResponseDTO {
     private List<LeadNoteResponseDTO> leadNotesList;
     @Schema(description = "Name of the person who assigned the lead", example = "Admin User")
     private String assignedBy;
-
+    @Schema(description = "Name of the person who created the lead", example = "Admin User")
+    private String addedBy;
     @Schema(description = "Name of the person ", example = "Agent User")
     private String assignedTo;
 

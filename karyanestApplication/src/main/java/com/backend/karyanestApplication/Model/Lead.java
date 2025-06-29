@@ -54,6 +54,9 @@ public class Lead {
     @Column(name = "assignedBy")
     private String AssignedBy;
 
+    @Column(name = "addedBy")
+    private String AddedBy;
+
     @Column(nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 

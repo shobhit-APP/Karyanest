@@ -11,4 +11,5 @@ import java.util.List;
 @Builder
 public class LeadNoteDTO {
     private String note;
+
 }
