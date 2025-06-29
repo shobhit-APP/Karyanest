@@ -32,6 +32,8 @@ public class UserResponseDTO {
     private Long parent_code;
     private String referCode;
     private String preferences;
+    private Long role_id;
+    private String Password;
 
     private User.VerificationStatus verificationStatus;
     private User.VerificationMethod verificationMethod;
