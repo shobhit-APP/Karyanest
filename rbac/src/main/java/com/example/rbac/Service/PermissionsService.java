@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PermissionsService {
@@ -53,5 +54,9 @@ public class PermissionsService {
     public void deletePermission(Long id) {
         Permissions permissions = getaPermissionById(id);
         permissionsRepository.delete(permissions);
+    }
+
+    public Optional<Permissions> getPermissionById(Long id) {
+        return  permissionsRepository.findById(id);
     }
 }

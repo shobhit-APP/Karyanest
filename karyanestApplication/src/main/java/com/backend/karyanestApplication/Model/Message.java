@@ -1,5 +1,6 @@
 package com.backend.karyanestApplication.Model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -27,6 +28,7 @@ public class Message {
     private String message;
 
     @Column(nullable = false, updatable = false)
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime timestamp;
 
     @PrePersist

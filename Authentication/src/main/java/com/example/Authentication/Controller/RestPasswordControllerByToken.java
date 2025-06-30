@@ -40,6 +40,7 @@ public class RestPasswordControllerByToken {
     @PostMapping("/reset-password-using-token")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> requestBody, HttpServletRequest request) {
         String newPassword = requestBody.get("newPassword");
+
         JWTUserDTO user = (JWTUserDTO) request.getAttribute("user");
         String token = userContext.extractToken(request);
 

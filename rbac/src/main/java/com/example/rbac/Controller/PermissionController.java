@@ -38,4 +38,21 @@ public class PermissionController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("message", "Routes Created Successfully", "routes", createdPermissions));
     }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('view_permission')")
+    public ResponseEntity<Map<String, Object>> getAllPermissions() {
+        List<Permissions> permissions = permissionsService.getAllPermissions();
+        return ResponseEntity.ok()
+                .body(Map.of("message", "Permissions Retrieved Successfully", "permissions", permissions));
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('view_permission')")
+    public ResponseEntity<Map<String, Object>> getPermissionById(@PathVariable Long id) {
+        Optional<Permissions> permission = permissionsService.getPermissionById(id);
+        return permission.map(permissions -> ResponseEntity.ok()
+                .body(Map.of("message", "Permission Retrieved Successfully", "permission", permissions))).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("message", "Permission not found with id: " + id)));
+    }
 }

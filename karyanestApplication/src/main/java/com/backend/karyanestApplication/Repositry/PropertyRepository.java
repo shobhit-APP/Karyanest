@@ -13,26 +13,30 @@ import java.util.List;
 @Repository
 public interface PropertyRepository extends JpaRepository<Property, Long> {
     List<Property> findByUserId(Long userId);
+
     Property getPropertyById(Long propertyId);
-//    List<Property> findByStatusAndUserId(Property.Status status, Long userId);
-//    void deleteByStatusAndCreatedAtBefore(Property.Status status, LocalDateTime threshold);
 
-    @Query("SELECT p FROM Property p WHERE " +
-            "(:locationAddress IS NULL OR LOWER(p.locationAddress) LIKE LOWER(CONCAT('%', :locationAddress, '%'))) " +
-            "AND (:propertyType IS NULL OR p.propertyType = :propertyType) " +
-            "AND (:listingType IS NULL OR p.listingType = :listingType) " +
-            "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
-            "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
-            "AND (:bedrooms IS NULL OR p.bedrooms = :bedrooms) " +
-            "AND (:bathrooms IS NULL OR p.bathrooms = :bathrooms) " +
-            "AND (:amenities IS NULL OR LOWER(p.amenities) LIKE LOWER(CONCAT('%', :amenities, '%')))")
-    List<Property> searchProperties(@Param("locationAddress") String locationAddress,
-                                    @Param("propertyType") Property.PropertyType propertyType,
-                                    @Param("listingType") Property.ListingType listingType,
-                                    @Param("minPrice") BigDecimal minPrice,
-                                    @Param("maxPrice") BigDecimal maxPrice,
-                                    @Param("bedrooms") Integer bedrooms,
-                                    @Param("bathrooms") Integer bathrooms,
-                                    @Param("amenities") String amenities);
-
-}
+    //    List<Property> findByStatusAndUserId(Property.Status status, Long userId);
+//    void deleteByStatusAndCreatedAtBefore(Property.Status status, LocalDateTime threshold)
+//    ;
+        @Query(value = """
+        SELECT * FROM properties
+        WHERE (:minPrice IS NULL OR :maxPrice IS NULL OR price BETWEEN :minPrice AND :maxPrice)
+          AND (:propertyType IS NULL OR property_type = :propertyType OR property_type IS NULL)
+          AND (:listingType IS NULL OR listing_type = :listingType OR listing_type IS NULL)
+          AND (:locationAddress IS NULL OR LOWER(locationAddress) LIKE CONCAT('%', LOWER(:locationAddress), '%') OR locationAddress IS NULL)
+          AND (:amenity IS NULL OR LOWER(amenities) LIKE CONCAT('%', LOWER(:amenity), '%') OR amenities IS NULL)
+          AND (:bedrooms IS NULL OR bedrooms = :bedrooms OR bedrooms IS NULL)
+          AND (:bathrooms IS NULL OR bathrooms = :bathrooms OR bathrooms IS NULL)
+        """, nativeQuery = true)
+        List<Property> searchProperties(
+                @Param("minPrice") BigDecimal minPrice,
+                @Param("maxPrice") BigDecimal maxPrice,
+                @Param("propertyType") String propertyType,
+                @Param("listingType") String listingType,
+                @Param("locationAddress") String location,
+                @Param("amenity") String amenity,
+                @Param("bedrooms") Integer bedrooms,
+                @Param("bathrooms") Integer bathrooms
+        );
+    }

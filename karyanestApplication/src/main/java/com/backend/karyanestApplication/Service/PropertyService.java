@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.SQLOutput;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -199,19 +200,22 @@ public class PropertyService {
 
     // ✅ Search properties based on criteria
     @Transactional
-    public List<PropertyDTO> searchProperties(PropertySearchRequestDTO request) {
+    public List<PropertyDTO> searchProperties(PropertySearchRequestDTO dto) {
         List<com.backend.karyanestApplication.Model.Property> properties = propertyRepository.searchProperties(
-                request.getLocationAddress(),
-                request.getPropertyType(),
-                request.getListingType(),
-                request.getMinPrice(),
-                request.getMaxPrice(),
-                request.getBedrooms(),
-                request.getBathrooms(),
-                request.getAmenities()
-        );
+                    dto.getMinPrice(),
+                    dto.getMaxPrice(),
+                    dto.getPropertyType() != null ? dto.getPropertyType().name() : null,
+                    dto.getListingType() != null ? dto.getListingType().name() : null,
+                    dto.getLocationAddress(),
+                    dto.getAmenities(),
+                    dto.getBedrooms(),
+                    dto.getBathrooms()
+            );
         return convertToResponseDTOList(properties, propertyResourcesRepository.findAll());
+
     }
+
+
     @Transactional
     public PropertyResourceDTO addPropertyResource(Long propertyId, PropertyResourceDTO resourceDTO) {
         // Fetch property or throw an exception

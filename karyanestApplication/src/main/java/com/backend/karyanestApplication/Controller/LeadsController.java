@@ -217,7 +217,7 @@ public class LeadsController {
                     content = @Content(mediaType = "application/json")
             )
     })
-    @GetMapping("/myLeads")
+    @GetMapping("/user/leads")
     @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('lead_getMyLead'))")
     public ResponseEntity<?> getMyLeads(HttpServletRequest request) {
         try {
@@ -275,11 +275,10 @@ public class LeadsController {
                     content = @Content(mediaType = "application/json")
             )
     })
-    @GetMapping
-    @PreAuthorize("(hasRole('ROLE_ADMIN') or hasAuthority('leads_getAll'))")
-    public ResponseEntity<?> getAllLeads() {
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('leads_getAll')")
+    public ResponseEntity<?> getAllLeadsForAdmin() {
         try {
-            // Fetch all leads from the database
             List<Lead> leads = leadService.getAllLeads();
             if (leads.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NO_CONTENT)
@@ -288,10 +287,9 @@ public class LeadsController {
             return ResponseEntity.ok(leadService.convertToResponseDTOList(leads));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.singletonMap("error", "An unexpected error occurred."+e.getMessage()));
+                    .body(Collections.singletonMap("error", "An unexpected error occurred. " + e.getMessage()));
         }
     }
-
     @Operation(
             summary = "Update lead",
             description = "Updates an existing lead with new information. Only accessible by administrators."
