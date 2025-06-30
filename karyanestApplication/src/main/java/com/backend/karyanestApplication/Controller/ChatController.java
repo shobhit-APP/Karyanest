@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @RestController
@@ -235,7 +236,7 @@ public class ChatController {
             map.put("userId", senderId);
             map.put("name", name);
             map.put("message", msg.getMessage());
-            map.put("timestamp", msg.getTimestamp().toString());
+            map.put("timestamp", msg.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
             chatMessages.add(map);
         }
@@ -314,7 +315,7 @@ public class ChatController {
             map.put("userId", senderId);
             map.put("name", name);
             map.put("message", msg.getMessage());
-            map.put("timestamp", msg.getTimestamp().toString());
+            map.put("timestamp", msg.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             chatMessages.add(map);
         }
 
