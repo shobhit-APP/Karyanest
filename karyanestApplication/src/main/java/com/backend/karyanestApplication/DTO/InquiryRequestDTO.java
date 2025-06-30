@@ -8,7 +8,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class InquiryRequestDTO {
-    private Long userId;
     private Long propertyId;
     private String inquiryMessage;
 }

@@ -8,6 +8,7 @@ import com.backend.karyanestApplication.Model.User;
 import com.backend.karyanestApplication.Repositry.InquiryRepository;
 import com.backend.karyanestApplication.Repositry.PropertyRepository;
 import com.backend.karyanestApplication.Repositry.UserRepo;
+import com.example.Authentication.DTO.JWTUserDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,8 +26,8 @@ public class InquiryService {
     private final PropertyRepository propertyRepository;
 
     @Transactional
-    public InquiryResponseDTO createInquiry(InquiryRequestDTO requestDTO) {
-        User user = userRepo.findById(requestDTO.getUserId())
+    public InquiryResponseDTO createInquiry(InquiryRequestDTO requestDTO, JWTUserDTO jwtUserDTO) {
+        User user = userRepo.findById(jwtUserDTO.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
 
         Property property = propertyRepository.findById(requestDTO.getPropertyId())

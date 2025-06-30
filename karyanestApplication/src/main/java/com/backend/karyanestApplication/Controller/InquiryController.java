@@ -3,6 +3,8 @@ package com.backend.karyanestApplication.Controller;
 import com.backend.karyanestApplication.DTO.InquiryRequestDTO;
 import com.backend.karyanestApplication.DTO.InquiryResponseDTO;
 import com.backend.karyanestApplication.Service.InquiryService;
+import com.example.Authentication.DTO.JWTUserDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,8 +20,9 @@ public class InquiryController {
     // Create inquiry - Admin, User, or Agent can create an inquiry
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('inquiries_create')")
-    public ResponseEntity<InquiryResponseDTO> createInquiry(@RequestBody InquiryRequestDTO requestDTO) {
-        InquiryResponseDTO response = inquiryService.createInquiry(requestDTO);
+    public ResponseEntity<InquiryResponseDTO> createInquiry(@RequestBody InquiryRequestDTO requestDTO, HttpServletRequest httpServletRequest) {
+        JWTUserDTO userDTO = (JWTUserDTO) httpServletRequest.getAttribute("user");
+        InquiryResponseDTO response = inquiryService.createInquiry(requestDTO,userDTO);
         return ResponseEntity.ok(response);
     }
 
