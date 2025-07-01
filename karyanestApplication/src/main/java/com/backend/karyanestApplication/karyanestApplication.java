@@ -11,8 +11,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 		"com.example.rbac",
 		"com.backend.karyanestApplication",
 		"com.example.module_b",
-		"com.example.notification",
-		"com.example.storageService",
+		"com.example.notification",		"com.example.storageService",
 		"com.example.addressmodule"
 })
 @EnableJpaRepositories

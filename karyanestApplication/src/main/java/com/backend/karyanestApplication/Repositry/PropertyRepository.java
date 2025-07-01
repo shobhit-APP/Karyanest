@@ -21,7 +21,8 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 //    ;
     @Query(value = """
             SELECT * FROM properties
-            WHERE (:minPrice IS NULL OR :maxPrice IS NULL OR price BETWEEN :minPrice AND :maxPrice)
+            WHERE ((:minPrice IS NULL AND :maxPrice IS NULL) OR
+            (:minPrice IS NOT NULL AND :maxPrice IS NOT NULL AND price BETWEEN :minPrice AND :maxPrice))
               AND (:propertyType IS NULL OR property_type = :propertyType OR property_type IS NULL)
               AND (:listingType IS NULL OR listing_type = :listingType OR listing_type IS NULL)
               AND (:locationAddress IS NULL OR LOWER(locationAddress) LIKE CONCAT('%', LOWER(:locationAddress), '%') OR locationAddress IS NULL)
