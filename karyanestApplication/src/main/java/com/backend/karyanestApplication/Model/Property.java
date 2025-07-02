@@ -87,9 +87,6 @@ public class Property {
     private String securityFeatures;
 
     @Column(columnDefinition = "TEXT")
-    private String amenities;
-
-    @Column(columnDefinition = "TEXT")
     private String nearbyLandmarks;
 
     @Column(nullable = false)

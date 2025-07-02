@@ -1,12 +1,10 @@
 package com.backend.karyanestApplication.Controller;
 
 import com.backblaze.b2.client.exceptions.B2Exception;
-import com.backend.karyanestApplication.DTO.PropertyCreateDTO;
+import com.backend.karyanestApplication.DTO.*;
+import com.backend.karyanestApplication.Repositry.AmenitiesRepository;
 import com.backend.karyanestApplication.Service.PropertyService;
 import com.example.Authentication.DTO.JWTUserDTO;
-import com.backend.karyanestApplication.DTO.PropertyDTO;
-import com.backend.karyanestApplication.DTO.PropertyResourceDTO;
-import com.backend.karyanestApplication.DTO.PropertySearchRequestDTO;
 import com.example.Authentication.UTIL.JwtUtil;
 import com.backend.karyanestApplication.Model.*;
 import com.backend.karyanestApplication.Repositry.PropertyPriceChangeRepository;
@@ -49,6 +47,8 @@ public class PropertyController {
     private PropertyPriceChangeRepository priceChangeRepository;
     @Autowired
     private StorageService storageService;
+    @Autowired
+    private AmenitiesRepository amenitiesRepository;
 
     /**
      * Retrieves all properties in the system.
@@ -69,7 +69,7 @@ public class PropertyController {
      * Retrieves a specific property by its ID.
      * This endpoint also records the visit to this specific property.
      *
-     * @param id The ID of the property to retrieve
+     * @param id      The ID of the property to retrieve
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing the PropertyDTO for the specified ID
      */
@@ -83,12 +83,13 @@ public class PropertyController {
         userPropertyVisitService.recordVisit(user.getUserId(), id, deviceInfo, null);
         return ResponseEntity.ok(property);
     }
+
     /**
      * Creates a new property with associated resources.
      * The property is associated with the authenticated user derived from the JWT token.
      *
      * @param propertyDTO The property data transfer object containing property details
-     * @param request The HTTP request containing the JWT token
+     * @param request     The HTTP request containing the JWT token
      * @return ResponseEntity containing the created PropertyDTO with HTTP status 201 (Created)
      */
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_create')")
@@ -105,7 +106,7 @@ public class PropertyController {
     /**
      * Updates an existing property with the provided information.
      *
-     * @param id The ID of the property to update
+     * @param id          The ID of the property to update
      * @param propertyDTO The property data transfer object containing updated details
      * @return ResponseEntity containing the updated PropertyDTO
      */
@@ -161,7 +162,7 @@ public class PropertyController {
 
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_deleteResource')")
     @DeleteMapping("/{id}/delete-resource/{resourceId}")
-    public ResponseEntity<Map<String , String>> deletePropertyResource(
+    public ResponseEntity<Map<String, String>> deletePropertyResource(
             @PathVariable Long id,
             @PathVariable Long resourceId) {
         try {
@@ -181,7 +182,7 @@ public class PropertyController {
 
             propertyService.deletePropertyResource(id, resourceId);
 
-            return ResponseEntity.ok(Map.of("message", "Resource deleted: " + resourceDTO.getUrl()));
+            return ResponseEntity.ok(Map.of("message",resourceDTO.getUrl()));
         } catch (B2Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Delete failed: " + e.getMessage()));
@@ -208,7 +209,7 @@ public class PropertyController {
     /**
      * Adds a new resource to an existing property.
      *
-     * @param id The ID of the property to add the resource to
+     * @param id                  The ID of the property to add the resource to
      * @param propertyResourceDTO The resource details to add
      * @return ResponseEntity containing the created PropertyResourceDTO
      */
@@ -221,8 +222,8 @@ public class PropertyController {
     /**
      * Updates an existing property resource or creates a new one if it doesn't exist.
      *
-     * @param id The ID of the property
-     * @param resourcesId The ID of the resource to update
+     * @param id                  The ID of the property
+     * @param resourcesId         The ID of the resource to update
      * @param propertyResourceDTO The updated resource details
      * @return ResponseEntity containing the updated PropertyResourceDTO
      */
@@ -252,7 +253,7 @@ public class PropertyController {
      * Retrieves all properties associated with a specific user ID.
      * This endpoint also records property visits for analytical purposes.
      *
-     * @param id The user ID whose properties to retrieve
+     * @param id      The user ID whose properties to retrieve
      * @param request The HTTP request containing user information
      * @return ResponseEntity containing a list of PropertyDTO objects
      */
@@ -353,9 +354,9 @@ public class PropertyController {
      * Manually records a visit to a property with additional metadata.
      * This endpoint requires authentication via a JWT token.
      *
-     * @param id The ID of the property being visited
+     * @param id        The ID of the property being visited
      * @param visitData Additional metadata about the visit (device info, location)
-     * @param request The HTTP request containing the JWT token
+     * @param request   The HTTP request containing the JWT token
      * @return ResponseEntity containing the created UserPropertyVisit or an error message
      */
 
@@ -388,9 +389,9 @@ public class PropertyController {
      * Updates the price of a property and records the price change history.
      * This endpoint requires authentication via a JWT token.
      *
-     * @param id The ID of the property to update
+     * @param id       The ID of the property to update
      * @param priceMap Map containing the new price
-     * @param request The HTTP request containing the JWT token
+     * @param request  The HTTP request containing the JWT token
      * @return ResponseEntity containing the updated PropertyDTO or an error message
      */
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('property_changePrice')")
@@ -434,7 +435,6 @@ public class PropertyController {
     }
 
 
-
     /**
      * Retrieves the price change history for all properties.
      *
@@ -459,7 +459,7 @@ public class PropertyController {
                         item.put("new_price", change.getNewPrice());
                         item.put("old_price", change.getOldPrice());
                         item.put("property_id", change.getProperty().getId());
-                        item.put("Price changed By",change.getUser().getFullName());
+                        item.put("Price changed By", change.getUser().getFullName());
                         // Just get the ID
                         return item;
                     })
@@ -474,7 +474,7 @@ public class PropertyController {
     /**
      * Retrieves a specific price change record by its ID.
      *
-     * @param id The ID of the price change record to retrieve
+     * @param id      The ID of the price change record to retrieve
      * @param request The HTTP request
      * @return ResponseEntity containing the price change record or null if not found
      */
@@ -490,7 +490,7 @@ public class PropertyController {
                         item.put("new_price", change.getNewPrice());
                         item.put("old_price", change.getOldPrice());
                         item.put("property_id", change.getProperty().getId());
-                        item.put("Price changed By",change.getUser().getFullName());
+                        item.put("Price changed By", change.getUser().getFullName());
                         // Just get the ID
 
                         return ResponseEntity.ok(item);
@@ -514,64 +514,83 @@ public class PropertyController {
         return ResponseEntity.ok(properties);
     }
 
-//    /**
-//     * Helper method to extract the user ID from the HTTP request.
-//     * This method attempts to extract the JWT token from the request, validate it,
-//     * and retrieve the associated user ID.
-//     *
-//     * @param request The HTTP request containing the JWT token
-//     * @return The user ID or null if extraction fails
-//     */
-//    private Long extractUserIdFromRequest(HttpServletRequest request) {
-//        try {
-//            String token = userContext.extractToken(request);
-//            if (token != null && !token.isEmpty()) {
-//                String username = jwtUtil.extractUsername(token);
-//                if (username != null && !username.isEmpty()) {
-//                    return userService.getUserIdByUsername(username);
-//                }
-//            }
-//        } catch (Exception e) {
-//            System.err.println("Error extracting user ID: " + e.getMessage());
-//        }
-//        return null;
-//    }
+    /**
+     * @param id The ID of the property
+     * @return ResponseEntity containing the amenities text or error message
+     */
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getAmenities')")
+    @GetMapping("/{id}/amenities")
+    public ResponseEntity<?> getPropertyAmenities(@PathVariable Long id) {
+        try {
+            PropertyDTO property = propertyService.getPropertyById(id);
+            if (property == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Property not found with id: " + id));
+            }
+            List<AmenitiesResponseDTO> response = property.getAmenitiesResponseDTOS();
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error retrieving amenities", "details", e.getMessage()));
+        }
+    }
 
-//    /**
-//     * Helper method to asynchronously record property visits for a list of properties.
-//     * This method creates UserPropertyVisit records for each property viewed by the user.
-//     *
-//     * @param request The HTTP request containing the JWT token and User-Agent header
-//     * @param properties The list of properties being viewed
-//     */
-//    private void recordPropertyVisit(HttpServletRequest request, List<PropertyDTO> properties) {
-//        CompletableFuture.runAsync(() -> {
-//            Long userId = extractUserIdFromRequest(request);
-//            if (userId != null) {
-//                String deviceInfo = request.getHeader("User-Agent");
-//                List<UserPropertyVisit> visits = properties.stream()
-//                        .map(property -> {
-//                            UserPropertyVisit visit = new UserPropertyVisit(userId, property.getId(), deviceInfo, Timestamp.from(Instant.now()));
-//                            //visit.setVisitCount(1);
-//                            return visit;
-//                        })
-//                        .collect(Collectors.toList());
-//                userPropertyVisitService.recordVisitsBatch(visits);
-//            }
-//        });
-//    }
-//
-//    /**
-//     * Helper method to record a visit to a single property.
-//     *
-//     * @param request The HTTP request containing the JWT token and User-Agent header
-//     * @param id The ID of the property being visited
-//     */
-//    private void recordVisit(HttpServletRequest request, Long id) {
-//        Long userId = extractUserIdFromRequest(request);
-//        if (userId != null) {
-//            String deviceInfo = request.getHeader("User-Agent");
-//            userPropertyVisitService.recordVisit(userId, id, deviceInfo, null);
-//        }
-//    }
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addAmenities')")
+    @PostMapping("/{id}/add-amenities-only")
+    public ResponseEntity<?> addAmenitiesOnly(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> requestData) {
+        try {
+            String amenities = requestData.get("amenities");
+            if (amenities == null || amenities.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Amenities cannot be empty"));
+            }
+
+            return ResponseEntity.ok(propertyService.processAmenities(id, amenities.trim(), false));
+
+        } catch (RuntimeException e) {
+            return handleAmenityError(e);
+        }
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_updateAmenities')")
+    @PutMapping("/{id}/amenities")
+    public ResponseEntity<?> updatePropertyAmenities(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> amenitiesData) {
+        try {
+            String amenities = amenitiesData.get("amenities");
+            if (amenities == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Amenities field is required"));
+            }
+
+            return ResponseEntity.ok(propertyService.processAmenities(id, amenities.trim(), true));
+
+        } catch (RuntimeException e) {
+            return handleAmenityError(e);
+        }
+    }
+
+    private ResponseEntity<Map<String, String>> handleAmenityError(RuntimeException e) {
+        if (e.getMessage().contains("not found")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Error processing amenities", "details", e.getMessage()));
+    }
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_deleteAmenities')")
+    @DeleteMapping("/amenities/{amenities_id}")
+    public ResponseEntity<?> deleteAmenityById(@PathVariable Long amenities_id) {
+        try {
+            AmenitiesResponseDTO deleted = propertyService.deleteAmenityById(amenities_id);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Amenity deleted successfully",
+                    "deletedAmenity", deleted
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error deleting amenity", "details", e.getMessage()));
+        }
+    }
+
 }

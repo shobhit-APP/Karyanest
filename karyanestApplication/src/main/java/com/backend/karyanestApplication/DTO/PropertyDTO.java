@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +45,6 @@ public class PropertyDTO {
     private Boolean waterAvailability;
     private Boolean electricityAvailability;
     private String securityFeatures;
-    private String amenities;
     private String nearbyLandmarks;
     private String locationAddress;
     private String city;
@@ -55,15 +55,13 @@ public class PropertyDTO {
     private BigDecimal longitude;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime createdAt;
-
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime updateAt;
     private Property.VerificationStatus verificationStatus;
-
-    // ✅ Added List of Property Resources
+    private String amenities;
     private List<PropertyResourceDTO> propertyResources;
+    private List<AmenitiesResponseDTO> amenitiesResponseDTOS;
 
-    // Constructor to map Property entity to DTO
     public PropertyDTO(Property property) {
         this.id = property.getId();
         this.title = property.getTitle();
@@ -90,7 +88,6 @@ public class PropertyDTO {
         this.waterAvailability = property.getWaterAvailability();
         this.electricityAvailability = property.getElectricityAvailability();
         this.securityFeatures = property.getSecurityFeatures();
-        this.amenities = property.getAmenities();
         this.nearbyLandmarks = property.getNearbyLandmarks();
         this.locationAddress = property.getLocationAddress();
         this.city = property.getCity();
@@ -99,12 +96,14 @@ public class PropertyDTO {
         this.pincode = property.getPincode();
         this.latitude = property.getLatitude();
         this.longitude = property.getLongitude();
-        this.createdAt =property.getCreatedAt();
-        this.updateAt=property.getUpdatedAt();
+        this.createdAt = property.getCreatedAt();
+        this.updateAt = property.getUpdatedAt();
         this.verificationStatus = property.getVerificationStatus();
-        setPropertyResources(propertyResources);
+        this.propertyResources = new ArrayList<>();
+        this.amenitiesResponseDTOS = new ArrayList<>();
+        // Note: amenities field will be set by PropertyService
     }
-    // ✅ Add dynamic fields map
+
     private Map<String, Object> extraFields = new HashMap<>();
 
     @JsonAnySetter

@@ -1,17 +1,8 @@
 package com.backend.karyanestApplication.Service;
 
-import com.backend.karyanestApplication.DTO.PropertyDTO;
-import com.backend.karyanestApplication.DTO.PropertyFavoriteRequestDTO;
-import com.backend.karyanestApplication.DTO.PropertyFavoriteResponseDTO;
-import com.backend.karyanestApplication.DTO.PropertyResourceDTO;
-import com.backend.karyanestApplication.Model.PropertyFavorite;
-import com.backend.karyanestApplication.Model.PropertyResource;
-import com.backend.karyanestApplication.Model.User;
-import com.backend.karyanestApplication.Model.Property;
-import com.backend.karyanestApplication.Repositry.PropertyFavoriteRepository;
-import com.backend.karyanestApplication.Repositry.PropertyResourcesRepository;
-import com.backend.karyanestApplication.Repositry.UserRepo;
-import com.backend.karyanestApplication.Repositry.PropertyRepository;
+import com.backend.karyanestApplication.DTO.*;
+import com.backend.karyanestApplication.Model.*;
+import com.backend.karyanestApplication.Repositry.*;
 import com.example.Authentication.DTO.JWTUserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +21,7 @@ public class PropertyFavoriteService {
     private final UserRepo userRepository;
     private final PropertyRepository propertyRepository;
     private final PropertyResourcesRepository propertyResourcesRepository;
+    private final AmenitiesRepository amenitiesRepository;
 
 
     @Transactional
@@ -65,18 +57,35 @@ public class PropertyFavoriteService {
 
         List<PropertyFavorite> favorites = propertyFavoriteRepository.findByUserId(jwtuser.getUserId());
 
-        return favorites.stream().map(favorite -> {
-            Property property = favorite.getProperty();
+        return favorites.stream().map(fav -> {
+            Property property = fav.getProperty();
             PropertyDTO dto = new PropertyDTO(property);
 
-            // ✅ Fetch and set property resources by property ID
+            // Set property resources
             List<PropertyResource> resources = propertyResourcesRepository.findByPropertyId(property.getId());
-            dto.setPropertyResources(
-                    resources.stream().map(PropertyResourceDTO::new).collect(Collectors.toList())
-            );
+            dto.setPropertyResources(resources.stream()
+                    .map(PropertyResourceDTO::new)
+                    .collect(Collectors.toList()));
+
+            // Set amenities
+            List<Amenities> amenities = amenitiesRepository.findByPropertyId(property.getId());
+            List<AmenitiesResponseDTO> amenitiesDTOs = amenities.stream()
+                    .map(AmenitiesResponseDTO::convertToResponseDTO)
+                    .collect(Collectors.toList());
+
+            dto.setAmenitiesResponseDTOS(amenitiesDTOs);
+
+            String amenitiesStr = amenitiesDTOs.stream()
+                    .map(AmenitiesResponseDTO::getAmenities)
+                    .filter(amenity -> amenity != null && !amenity.isBlank())
+                    .collect(Collectors.joining(","));
+
+            dto.setAmenities(amenitiesStr.isEmpty() ? null : amenitiesStr);
+
             return dto;
         }).collect(Collectors.toList());
     }
+
 
     @Transactional
     public void removeFavorite(HttpServletRequest jwt, Long propertyId) {
