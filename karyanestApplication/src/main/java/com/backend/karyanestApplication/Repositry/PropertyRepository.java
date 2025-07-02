@@ -20,15 +20,16 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
 //    void deleteByStatusAndCreatedAtBefore(Property.Status status, LocalDateTime threshold)
 //    ;
     @Query(value = """
-            SELECT * FROM properties
+            SELECT DISTINCT p.* FROM properties p
+            LEFT JOIN Amenities a ON p.id = a.property_id
             WHERE ((:minPrice IS NULL AND :maxPrice IS NULL) OR
-            (:minPrice IS NOT NULL AND :maxPrice IS NOT NULL AND price BETWEEN :minPrice AND :maxPrice))
-              AND (:propertyType IS NULL OR property_type = :propertyType OR property_type IS NULL)
-              AND (:listingType IS NULL OR listing_type = :listingType OR listing_type IS NULL)
-              AND (:locationAddress IS NULL OR LOWER(locationAddress) LIKE CONCAT('%', LOWER(:locationAddress), '%') OR locationAddress IS NULL)
-              AND (:amenity IS NULL OR LOWER(amenities) LIKE CONCAT('%', LOWER(:amenity), '%') OR amenities IS NULL)
-              AND (:bedrooms IS NULL OR :bedrooms = 0 OR bedrooms = :bedrooms OR bedrooms IS NULL)
-              AND (:bathrooms IS NULL OR :bathrooms = 0 OR bathrooms = :bathrooms OR bathrooms IS NULL)
+                   (:minPrice IS NOT NULL AND :maxPrice IS NOT NULL AND p.price BETWEEN :minPrice AND :maxPrice))
+              AND (:propertyType IS NULL OR p.property_type = :propertyType)
+              AND (:listingType IS NULL OR p.listing_type = :listingType)
+              AND (:locationAddress IS NULL OR LOWER(p.locationAddress) LIKE CONCAT('%', LOWER(:locationAddress), '%'))
+              AND (:amenity IS NULL OR LOWER(a.amenities) LIKE CONCAT('%', LOWER(:amenity), '%'))
+              AND (:bedrooms IS NULL OR :bedrooms = 0 OR p.bedrooms = :bedrooms)
+              AND (:bathrooms IS NULL OR :bathrooms = 0 OR p.bathrooms = :bathrooms)
             """, nativeQuery = true)
     List<Property> searchProperties(
             @Param("minPrice") BigDecimal minPrice,
