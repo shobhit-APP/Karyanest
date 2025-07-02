@@ -12,6 +12,7 @@ import com.backend.karyanestApplication.Service.UserPropertyVisitService;
 import com.backend.karyanestApplication.Service.UserService;
 import com.example.Authentication.Component.UserContext;
 import com.example.storageService.Model.FileVersion;
+import com.example.storageService.Service.DynamicStorageService;
 import com.example.storageService.Service.StorageService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,7 @@ public class PropertyController {
     @Autowired
     private PropertyPriceChangeRepository priceChangeRepository;
     @Autowired
-    private StorageService storageService;
+    private DynamicStorageService storageService;
     @Autowired
     private AmenitiesRepository amenitiesRepository;
 
@@ -118,71 +119,169 @@ public class PropertyController {
         return ResponseEntity.ok(propertyService.updateProperty(id, propertyDTO));
     }
 
+//
+//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addResource')")
+//    @PostMapping("/{id}/upload-resource")
+//    public ResponseEntity<List<PropertyResourceDTO>> uploadPropertyResource(
+//            @PathVariable Long id,
+//            @RequestParam("files") MultipartFile[] files,
+//            @RequestParam(value = "title", required = false) PropertyResource.ResourceTitle title,
+//            @RequestParam(value = "description", required = false) String description) {
+//        try {
+//            List<PropertyResourceDTO> savedResources = new ArrayList<>();
+//            for (MultipartFile file : files) {
+//                FileVersion fileVersion = storageService.uploadFile(
+//                        file.getOriginalFilename(),
+//                        file.getInputStream(),
+//                        file.getSize(),
+//                        file.getContentType(),
+//                        id,
+//                        "property"
+//                );
+//
+//                PropertyResourceDTO resourceDTO = new PropertyResourceDTO();
+//                resourceDTO.setPropertyId(id);
+//
+//                // Dynamically decide resource type
+//                String contentType = file.getContentType();
+//                if (contentType != null && contentType.startsWith("video/")) {
+//                    resourceDTO.setResourceType(PropertyResource.ResourceType.Video);
+//                } else if (contentType != null && contentType.equals("application/pdf")) {
+//                    resourceDTO.setResourceType(PropertyResource.ResourceType.Document);
+//                } else {
+//                    resourceDTO.setResourceType(PropertyResource.ResourceType.Image);
+//                }
+//                resourceDTO.setTitle(title != null ? title : PropertyResource.ResourceTitle.Front);
+//                resourceDTO.setUrl(fileVersion.getFileName());
+//                resourceDTO.setFileId(fileVersion.getFileId());
+//                resourceDTO.setDescription(description);
+//
+//                PropertyResourceDTO savedResource = propertyService.addPropertyResource(id, resourceDTO);
+//                savedResources.add(savedResource);
+//            }
+//            if (savedResources.isEmpty()) {
+//                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+//                        .body(Collections.emptyList());
+//            }
+//            return ResponseEntity.ok(savedResources);
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Collections.emptyList());
+//        }
+//    }
+//
+//    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_deleteResource')")
+//    @DeleteMapping("/{id}/delete-resource/{resourceId}")
+//    public ResponseEntity<Map<String, String>> deletePropertyResource(
+//            @PathVariable Long id,
+//            @PathVariable Long resourceId) {
+//        try {
+//
+//            PropertyResourceDTO resourceDTO = propertyService.getPropertyResourceById(id, resourceId);
+//            if (resourceDTO == null) {
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//                        .body(Map.of("error", "Resource not found"));
+//            }
+//            String fullPath = resourceDTO.getUrl();
+//            String fileName = fullPath.substring(fullPath.indexOf("nestero-rootfolder/") + "nestero-rootfolder/".length());
+//
+//            storageService.deleteFile(
+//                    fileName,
+//                    resourceDTO.getFileId()
+//            );
+//
+//            propertyService.deletePropertyResource(id, resourceId);
+//
+//            return ResponseEntity.ok(Map.of("message",resourceDTO.getUrl()));
+//        } catch (B2Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Map.of("error", "Delete failed: " + e.getMessage()));
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//    }
+@PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addResource')")
+@PostMapping("/{id}/upload-resource")
+public ResponseEntity<List<PropertyResourceDTO>> uploadPropertyResource(
+        @PathVariable Long id,
+        @RequestParam("files") MultipartFile[] files,
+        @RequestParam(value = "title", required = false) PropertyResource.ResourceTitle title,
+        @RequestParam(value = "description", required = false) String description) {
+    try {
+        List<PropertyResourceDTO> savedResources = new ArrayList<>();
 
-    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addResource')")
-    @PostMapping("/{id}/upload-resource")
-    public ResponseEntity<List<PropertyResourceDTO>> uploadPropertyResource(
-            @PathVariable Long id,
-            @RequestParam("files") MultipartFile[] files,
-            @RequestParam(value = "title", required = false) PropertyResource.ResourceTitle title,
-            @RequestParam(value = "description", required = false) String description) {
-        try {
-            List<PropertyResourceDTO> savedResources = new ArrayList<>();
-            for (MultipartFile file : files) {
-                FileVersion fileVersion = storageService.uploadFile(
-                        file.getOriginalFilename(),
-                        file.getInputStream(),
-                        file.getSize(),
-                        file.getContentType(),
-                        id,
-                        "property"
-                );
+        for (MultipartFile file : files) {
+            String contentType = file.getContentType();
+            String context;
 
-                PropertyResourceDTO resourceDTO = new PropertyResourceDTO();
-                resourceDTO.setPropertyId(id);
+            if (contentType != null && contentType.startsWith("video/")) {
+                context = "video";
+            } else if ("application/pdf".equals(contentType)) {
+                context = "document";
+            } else if (contentType != null && contentType.startsWith("image/")) {
+                context = "property";
+            } else {
+                context = "property"; // fallback
+            }
+
+            FileVersion fileVersion = storageService.uploadFile(
+                    file.getOriginalFilename(),
+                    file.getInputStream(),
+                    file.getSize(),
+                    contentType,
+                    id,
+                    context
+            );
+
+            PropertyResourceDTO resourceDTO = new PropertyResourceDTO();
+            resourceDTO.setPropertyId(id);
+
+            // Set resourceType based on contentType
+            if (contentType != null && contentType.startsWith("video/")) {
+                resourceDTO.setResourceType(PropertyResource.ResourceType.Video);
+            } else if ("application/pdf".equals(contentType)) {
+                resourceDTO.setResourceType(PropertyResource.ResourceType.Document);
+            } else {
                 resourceDTO.setResourceType(PropertyResource.ResourceType.Image);
-                resourceDTO.setTitle(title != null ? title : PropertyResource.ResourceTitle.Front);
-                resourceDTO.setUrl(fileVersion.getFileName());
-                resourceDTO.setFileId(fileVersion.getFileId());
-                resourceDTO.setDescription(description);
+            }
 
-                PropertyResourceDTO savedResource = propertyService.addPropertyResource(id, resourceDTO);
-                savedResources.add(savedResource);
-            }
-            if (savedResources.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Collections.emptyList());
-            }
-            return ResponseEntity.ok(savedResources);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Collections.emptyList());
+            resourceDTO.setTitle(title != null ? title : PropertyResource.ResourceTitle.Front);
+            resourceDTO.setUrl(fileVersion.getFileName());
+            resourceDTO.setFileId(fileVersion.getFileId());
+            resourceDTO.setDescription(description);
+
+            PropertyResourceDTO savedResource = propertyService.addPropertyResource(id, resourceDTO);
+            savedResources.add(savedResource);
         }
-    }
 
+        if (savedResources.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Collections.emptyList());
+        }
+
+        return ResponseEntity.ok(savedResources);
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyList());
+    }
+}
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_deleteResource')")
     @DeleteMapping("/{id}/delete-resource/{resourceId}")
     public ResponseEntity<Map<String, String>> deletePropertyResource(
             @PathVariable Long id,
             @PathVariable Long resourceId) {
         try {
-
             PropertyResourceDTO resourceDTO = propertyService.getPropertyResourceById(id, resourceId);
             if (resourceDTO == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "Resource not found"));
             }
+
             String fullPath = resourceDTO.getUrl();
-            String fileName = fullPath.substring(fullPath.indexOf("nestero-rootfolder/") + "nestero-rootfolder/".length());
+            String fileName = fullPath.substring(fullPath.indexOf("nestaro-rootfolder/") + "nestaro-rootfolder/".length());
 
-            storageService.deleteFile(
-                    fileName,
-                    resourceDTO.getFileId()
-            );
-
+            storageService.deleteFile(fileName, resourceDTO.getFileId());
             propertyService.deletePropertyResource(id, resourceId);
 
-            return ResponseEntity.ok(Map.of("message",resourceDTO.getUrl()));
+            return ResponseEntity.ok(Map.of("message", resourceDTO.getUrl()));
         } catch (B2Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Delete failed: " + e.getMessage()));
@@ -190,6 +289,7 @@ public class PropertyController {
             throw new RuntimeException(e);
         }
     }
+
 
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_getResources')")
     @GetMapping("/{id}/resources")

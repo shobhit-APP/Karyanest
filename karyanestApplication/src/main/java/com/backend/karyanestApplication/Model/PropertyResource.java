@@ -54,7 +54,7 @@ public class PropertyResource {
     }
 
     public enum ResourceType {
-        Image, Video
+        Image, Video,Document
     }
 
     public enum ResourceTitle {
