@@ -12,9 +12,11 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.ZoneOffset;
@@ -29,6 +31,8 @@ public class R2StorageService implements StorageService {
     private final StorageProperties properties;
     private final RedisTemplate<String, Object> storageServiceRedisTemplate;
     private final HttpClient client = HttpClient.newHttpClient();
+    private static final Logger logger = LoggerFactory.getLogger(R2StorageService.class);
+
 
     private String getTokenKey() {
         String bucketName = properties.getR2BucketName();
@@ -38,14 +42,18 @@ public class R2StorageService implements StorageService {
         return "r2:auth:token:" + bucketName;
     }
 
-
     private String getFolderName(String context) {
+        System.out.println("Context: " + context);
+
         return switch (context.toLowerCase()) {
             case "avatar" -> properties.getR2AvatarsFolder();
             case "property" -> properties.getR2PropertiesFolder();
+            case "document" -> "propertydocuments";
+            case "video" -> "propertyvideos";
             default -> throw new IllegalArgumentException("Invalid context: " + context);
         };
     }
+
 
     @Override
     public FileVersion uploadFile(String fileName, InputStream inputStream, long contentLength, String contentType, Long id, String context)
@@ -90,33 +98,75 @@ public class R2StorageService implements StorageService {
         return fileVersion;
     }
 
-    @Override
-    public void deleteFile(String fileName, String fileId) throws Exception {
-        validateCredentials();
-        String date = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"));
-        String contentHash = calculateSha256(new byte[0]);
-        String canonicalRequest = createCanonicalRequest("DELETE", fileName, contentHash, date);
-        String signature = createSignature(canonicalRequest, date);
+//    @Override
+//    public void deleteFile(String fileName, String fileId) throws Exception {
+//        validateCredentials();
+//        String date = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"));
+//        String contentHash = calculateSha256(new byte[0]);
+//        String canonicalRequest = createCanonicalRequest("DELETE", fileName, contentHash, date);
+//        String signature = createSignature(canonicalRequest, date);
+//
+//        String bucketName = properties.getR2BucketName();
+//        String endpoint = String.format("https://%s.r2.cloudflarestorage.com", properties.getR2AccountId());
+//        String requestUri = String.format("%s/%s/%s", endpoint, bucketName, fileName);
+//
+//        HttpRequest request = HttpRequest.newBuilder()
+//                .uri(URI.create(requestUri))
+//                .header("Authorization", String.format(
+//                        "AWS4-HMAC-SHA256 Credential=%s/%s/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=%s",
+//                        properties.getR2AccessKeyId(), date.substring(0, 8), signature))
+//                .header("x-amz-content-sha256", contentHash)
+//                .header("x-amz-date", date)
+//                .DELETE()
+//                .build();
+//
+//        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+//        if (response.statusCode() >= 400) {
+//            System.err.println("Failed to delete from R2: " + response.statusCode() + " - " + response.body());
+//            throw new IOException("Delete failed: " + response.body());
+//        }
+//    }
+@Override
+public void deleteFile(String fileName, String fileId) throws Exception {
+    validateCredentials();
+    String date = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'"));
+    String contentHash = calculateSha256(new byte[0]);
+    String cleanFileName = fileName.startsWith("/") ? fileName.substring(1) : fileName;
+    // Encode once
+    String encodedFileName = URLEncoder.encode(cleanFileName, StandardCharsets.UTF_8)
+            .replace("+", "%20")
+            .replace("%2F", "/");
 
-        String bucketName = properties.getR2BucketName();
-        String endpoint = String.format("https://%s.r2.cloudflarestorage.com", properties.getR2AccountId());
-        String requestUri = String.format("%s/%s/%s", endpoint, bucketName, fileName);
+// Use encoded in both CanonicalRequest and requestUri
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(requestUri))
-                .header("Authorization", String.format(
-                        "AWS4-HMAC-SHA256 Credential=%s/%s/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=%s",
-                        properties.getR2AccessKeyId(), date.substring(0, 8), signature))
-                .header("x-amz-content-sha256", contentHash)
-                .header("x-amz-date", date)
-                .DELETE()
-                .build();
+    String bucketName = properties.getR2BucketName();
+    String endpoint = String.format("https://%s.r2.cloudflarestorage.com", properties.getR2AccountId());
+    String canonicalRequest = createCanonicalRequest("DELETE", encodedFileName, contentHash, date);
 
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() >= 400) {
-            throw new IOException("Delete failed: " + response.body());
-        }
+    String signature = createSignature(canonicalRequest, date);
+    String requestUri = String.format("%s/%s/%s", endpoint, bucketName, encodedFileName);
+    logger.info("Attempting to DELETE from R2: {}", requestUri);
+
+    HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(requestUri))
+            .header("Authorization", String.format(
+                    "AWS4-HMAC-SHA256 Credential=%s/%s/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=%s",
+                    properties.getR2AccessKeyId(), date.substring(0, 8), signature))
+            .header("x-amz-content-sha256", contentHash)
+            .header("x-amz-date", date)
+            .DELETE()
+            .build();
+
+    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+    if (response.statusCode() >= 400) {
+        logger.error("❌ Failed to delete from R2 | Status: {}, Response: {}", response.statusCode(), response.body());
+        throw new IOException("Delete failed: " + response.body());
     }
+
+    logger.info("✅ Successfully deleted file '{}' from R2 bucket '{}'", fileName, bucketName);
+}
+
 
     @Override
     public String getAuthToken() throws Exception {
@@ -148,12 +198,25 @@ public class R2StorageService implements StorageService {
         }
     }
 
+//    private String createCanonicalRequest(String method, String fileName, String contentHash, String date) {
+//        String bucketName = properties.getR2BucketName();
+//        String canonicalRequest = String.format(
+//                "%s\n/%s/%s\n\nhost:%s.r2.cloudflarestorage.com\nx-amz-content-sha256:%s\nx-amz-date:%s\n\nhost;x-amz-content-sha256;x-amz-date\n%s",
+//                method, bucketName, fileName, properties.getR2AccountId(), contentHash, date, contentHash);
+//        return canonicalRequest;
+//    }
+
+
     private String createCanonicalRequest(String method, String fileName, String contentHash, String date) {
         String bucketName = properties.getR2BucketName();
-        String canonicalRequest = String.format(
+
+        String encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8)
+                .replace("+", "%20")
+                .replace("%2F", "/"); // Allow actual slashes in the path
+
+        return String.format(
                 "%s\n/%s/%s\n\nhost:%s.r2.cloudflarestorage.com\nx-amz-content-sha256:%s\nx-amz-date:%s\n\nhost;x-amz-content-sha256;x-amz-date\n%s",
-                method, bucketName, fileName, properties.getR2AccountId(), contentHash, date, contentHash);
-        return canonicalRequest;
+                method, bucketName, encodedFileName, properties.getR2AccountId(), contentHash, date, contentHash);
     }
 
     private String createSignature(String canonicalRequest, String date) throws Exception {

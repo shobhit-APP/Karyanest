@@ -1,6 +1,8 @@
 package com.example.storageService.Controller;
 
 import com.backblaze.b2.client.exceptions.B2Exception;
+import com.example.storageService.Service.B2StorageService;
+import com.example.storageService.Service.R2StorageService;
 import com.example.storageService.Service.StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,14 +13,15 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/storage")
 @RequiredArgsConstructor
 public class StorageController {
-
     @Autowired
-    private StorageService storageService;
+    private R2StorageService r2StorageService;
+    @Autowired
+    private B2StorageService b2StorageService;
 
-    @GetMapping("/auth-token")
+    @GetMapping("/b2-auth-token")
     public ResponseEntity<String> getAuthToken() {
         try {
-            String token = storageService.getAuthToken();
+            String token = b2StorageService.getAuthToken();
             return ResponseEntity.ok(token);
         } catch (B2Exception e) {
             return ResponseEntity.status(500).body("Token generation failed: " + e.getMessage());
@@ -26,4 +29,16 @@ public class StorageController {
             throw new RuntimeException(e);
         }
     }
+    @GetMapping("/r2-auth-token")
+    public ResponseEntity<String> getR2AuthToken() throws Exception {
+        try {
+            String token = r2StorageService.getAuthToken();
+            return ResponseEntity.ok(token);
+        } catch (B2Exception e) {
+            return ResponseEntity.status(500).body("Token generation failed: " + e.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }

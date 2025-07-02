@@ -13,6 +13,7 @@ import com.example.Authentication.DTO.JWTUserDTO;
 import com.example.Authentication.DTO.UserDTO;
 import com.example.Authentication.Service.Auth;
 import com.example.storageService.Model.FileVersion;
+import com.example.storageService.Service.DynamicStorageService;
 import com.example.storageService.Service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,8 +46,7 @@ public class AccountController {
     private UserContext userContext;
 
     @Autowired
-    private StorageService storageService;
-
+    private DynamicStorageService storageService;
     private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(LeadsController.class);
     public AccountController(UserService userService) {
