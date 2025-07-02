@@ -10,10 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Data
 @AllArgsConstructor
@@ -44,6 +41,11 @@ public class PropertyDTO {
     private BigDecimal roadWidth;
     private Boolean waterAvailability;
     private Boolean electricityAvailability;
+    private Boolean internetAvailability;
+    private Boolean gasAvailability;
+    private Boolean sewageAvailability;
+    private Boolean publicTransportAvailable;
+    private Boolean highFootTraffic;
     private String securityFeatures;
     private String nearbyLandmarks;
     private String locationAddress;
@@ -53,14 +55,24 @@ public class PropertyDTO {
     private String pincode;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private BigDecimal availableLeaseArea;
+    private String floorPlanUrl;
+    private String streetFrontage;
+    private String zoningClassification;
+    private List<String> accessibilityFeatures;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime createdAt;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime updateAt;
+
     private Property.VerificationStatus verificationStatus;
     private String amenities;
     private List<PropertyResourceDTO> propertyResources;
     private List<AmenitiesResponseDTO> amenitiesResponseDTOS;
+
+    private Map<String, Object> extraFields = new HashMap<>();
 
     public PropertyDTO(Property property) {
         this.id = property.getId();
@@ -87,6 +99,11 @@ public class PropertyDTO {
         this.roadWidth = property.getRoadWidth();
         this.waterAvailability = property.getWaterAvailability();
         this.electricityAvailability = property.getElectricityAvailability();
+        this.internetAvailability = property.getInternetAvailability();
+        this.gasAvailability = property.getGasAvailability();
+        this.sewageAvailability = property.getSewageAvailability();
+        this.publicTransportAvailable = property.getPublicTransportAvailable();
+        this.highFootTraffic = property.getHighFootTraffic();
         this.securityFeatures = property.getSecurityFeatures();
         this.nearbyLandmarks = property.getNearbyLandmarks();
         this.locationAddress = property.getLocationAddress();
@@ -96,6 +113,11 @@ public class PropertyDTO {
         this.pincode = property.getPincode();
         this.latitude = property.getLatitude();
         this.longitude = property.getLongitude();
+        this.availableLeaseArea = property.getAvailableLeaseArea();
+        this.floorPlanUrl = property.getFloorPlanUrl();
+        this.streetFrontage = property.getStreetFrontage();
+        this.zoningClassification = property.getZoningClassification();
+        this.accessibilityFeatures = property.getAccessibilityFeatures();
         this.createdAt = property.getCreatedAt();
         this.updateAt = property.getUpdatedAt();
         this.verificationStatus = property.getVerificationStatus();
@@ -103,8 +125,6 @@ public class PropertyDTO {
         this.amenitiesResponseDTOS = new ArrayList<>();
         // Note: amenities field will be set by PropertyService
     }
-
-    private Map<String, Object> extraFields = new HashMap<>();
 
     @JsonAnySetter
     public void set(String key, Object value) {

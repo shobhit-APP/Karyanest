@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 
 @Data
@@ -21,6 +20,12 @@ public class PropertyResourceDTO {
     private String url;
     private String fileId;
     private String description;
+
+    // 🔽 New fields added
+    private Long fileSize;
+    private String fileType;
+    private Integer sortOrder;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime createdAt;
 
@@ -30,12 +35,18 @@ public class PropertyResourceDTO {
     public PropertyResourceDTO(PropertyResource propertyResource) {
         this.id = propertyResource.getId();
         this.propertyId = propertyResource.getPropertyId();
-        this.resourceType=propertyResource.getResourceType();
-        this.description=propertyResource.getDescription();
-        this.url=propertyResource.getUrl();
+        this.resourceType = propertyResource.getResourceType();
+        this.title = propertyResource.getTitle();
+        this.url = propertyResource.getUrl();
         this.fileId = propertyResource.getFileId();
-        this.title=propertyResource.getTitle();
-        this.updateAt=propertyResource.getUpdatedAt();
-        this.createdAt=propertyResource.getCreatedAt();
+        this.description = propertyResource.getDescription();
+
+        // 🔽 Add getters when available in entity
+        this.fileSize = propertyResource.getFileSize();
+        this.fileType = propertyResource.getFileType();
+        this.sortOrder = propertyResource.getSortOrder();
+
+        this.createdAt = propertyResource.getCreatedAt();
+        this.updateAt = propertyResource.getUpdatedAt();
     }
 }

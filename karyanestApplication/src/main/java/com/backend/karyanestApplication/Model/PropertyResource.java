@@ -36,6 +36,10 @@ public class PropertyResource {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    private Long fileSize;
+    private String fileType;
+    private Integer sortOrder;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 

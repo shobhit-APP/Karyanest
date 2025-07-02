@@ -159,6 +159,9 @@ public class PropertyService {
                 resource.setUrl(resourceDTO.getUrl());
                 resource.setFileId(resourceDTO.getFileId());
                 resource.setDescription(resourceDTO.getDescription());
+                resource.setFileSize(resourceDTO.getFileSize());
+                resource.setFileType(resourceDTO.getFileType());
+                resource.setSortOrder(resourceDTO.getSortOrder());
 
                 propertyResourcesRepository.save(resource);
             }
@@ -238,8 +241,18 @@ public class PropertyService {
         if (requestDTO.getPincode() != null) property.setPincode(requestDTO.getPincode());
         if (requestDTO.getLatitude() != null) property.setLatitude(requestDTO.getLatitude());
         if (requestDTO.getLongitude() != null) property.setLongitude(requestDTO.getLongitude());
-        if (requestDTO.getVerificationStatus() != null)
-            property.setVerificationStatus(requestDTO.getVerificationStatus());
+        if (requestDTO.getVerificationStatus() != null) property.setVerificationStatus(requestDTO.getVerificationStatus());
+        if (requestDTO.getElectricityAvailability() != null) property.setElectricityAvailability(requestDTO.getElectricityAvailability());
+        if (requestDTO.getInternetAvailability() != null) property.setInternetAvailability(requestDTO.getInternetAvailability());
+        if (requestDTO.getGasAvailability() != null) property.setGasAvailability(requestDTO.getGasAvailability());
+        if (requestDTO.getSewageAvailability() != null) property.setSewageAvailability(requestDTO.getSewageAvailability());
+        if (requestDTO.getPublicTransportAvailable() != null) property.setPublicTransportAvailable(requestDTO.getPublicTransportAvailable());
+        if (requestDTO.getHighFootTraffic() != null) property.setHighFootTraffic(requestDTO.getHighFootTraffic());
+        if (requestDTO.getAvailableLeaseArea() != null) property.setAvailableLeaseArea(requestDTO.getAvailableLeaseArea());
+        if (requestDTO.getStreetFrontage() != null) property.setStreetFrontage(requestDTO.getStreetFrontage());
+        if (requestDTO.getZoningClassification() != null) property.setZoningClassification(requestDTO.getZoningClassification());
+        if (requestDTO.getAccessibilityFeatures() != null) property.setAccessibilityFeatures(requestDTO.getAccessibilityFeatures());
+
     }
 
     private void mapPropertyDTOToEntity(PropertyCreateDTO dto, Property property) {
@@ -264,7 +277,21 @@ public class PropertyService {
         if (dto.getNearbyLandmarks() != null) property.setNearbyLandmarks(dto.getNearbyLandmarks());
         if (dto.getOwnershipType() != null) property.setOwnershipType(dto.getOwnershipType());
         if (dto.getConstructionStatus() != null) property.setConstructionStatus(dto.getConstructionStatus());
+        // ✅ Additional fields
+        if (dto.getRoadWidth() != null) property.setRoadWidth(dto.getRoadWidth());
+        if (dto.getWaterAvailability() != null) property.setWaterAvailability(dto.getWaterAvailability());
+        if (dto.getElectricityAvailability() != null) property.setElectricityAvailability(dto.getElectricityAvailability());
+        if (dto.getInternetAvailability() != null) property.setInternetAvailability(dto.getInternetAvailability());
+        if (dto.getGasAvailability() != null) property.setGasAvailability(dto.getGasAvailability());
+        if (dto.getSewageAvailability() != null) property.setSewageAvailability(dto.getSewageAvailability());
+        if (dto.getPublicTransportAvailable() != null) property.setPublicTransportAvailable(dto.getPublicTransportAvailable());
+        if (dto.getHighFootTraffic() != null) property.setHighFootTraffic(dto.getHighFootTraffic());
+        if (dto.getAvailableLeaseArea() != null) property.setAvailableLeaseArea(dto.getAvailableLeaseArea());
+        if (dto.getStreetFrontage() != null) property.setStreetFrontage(dto.getStreetFrontage());
+        if (dto.getZoningClassification() != null) property.setZoningClassification(dto.getZoningClassification());
+        if (dto.getAccessibilityFeatures() != null) property.setAccessibilityFeatures(dto.getAccessibilityFeatures());
     }
+
 
     private void updateNonNullFields(PropertyCreateDTO dto, Property property) {
         if (dto.getDraftId() != null) property.setId(dto.getDraftId());
@@ -289,6 +316,19 @@ public class PropertyService {
         if (dto.getNearbyLandmarks() != null) property.setNearbyLandmarks(dto.getNearbyLandmarks());
         if (dto.getOwnershipType() != null) property.setOwnershipType(dto.getOwnershipType());
         if (dto.getConstructionStatus() != null) property.setConstructionStatus(dto.getConstructionStatus());
+        if (dto.getRoadWidth() != null) property.setRoadWidth(dto.getRoadWidth());
+        if (dto.getWaterAvailability() != null) property.setWaterAvailability(dto.getWaterAvailability());
+        if (dto.getElectricityAvailability() != null) property.setElectricityAvailability(dto.getElectricityAvailability());
+        if (dto.getInternetAvailability() != null) property.setInternetAvailability(dto.getInternetAvailability());
+        if (dto.getGasAvailability() != null) property.setGasAvailability(dto.getGasAvailability());
+        if (dto.getSewageAvailability() != null) property.setSewageAvailability(dto.getSewageAvailability());
+        if (dto.getPublicTransportAvailable() != null) property.setPublicTransportAvailable(dto.getPublicTransportAvailable());
+        if (dto.getHighFootTraffic() != null) property.setHighFootTraffic(dto.getHighFootTraffic());
+        if (dto.getAvailableLeaseArea() != null) property.setAvailableLeaseArea(dto.getAvailableLeaseArea());
+        if (dto.getStreetFrontage() != null) property.setStreetFrontage(dto.getStreetFrontage());
+        if (dto.getZoningClassification() != null) property.setZoningClassification(dto.getZoningClassification());
+        if (dto.getAccessibilityFeatures() != null) property.setAccessibilityFeatures(dto.getAccessibilityFeatures());
+
     }
 
     @Transactional(readOnly = true)
@@ -337,6 +377,9 @@ public class PropertyService {
         resource.setUrl(resourceDTO.getUrl());
         resource.setFileId(resourceDTO.getFileId());
         resource.setDescription(resourceDTO.getDescription());
+        resource.setFileSize(resourceDTO.getFileSize());
+        resource.setFileType(resourceDTO.getFileType());
+        resource.setSortOrder(resourceDTO.getSortOrder());
 
         // Save the resource
         PropertyResource savedResource = propertyResourcesRepository.save(resource);
@@ -382,10 +425,14 @@ public class PropertyService {
             newResource.setUrl(resourceDTO.getUrl());
             newResource.setFileId(resourceDTO.getFileId());
             newResource.setDescription(resourceDTO.getDescription());
+            newResource.setFileSize(resourceDTO.getFileSize());
+            newResource.setFileType(resourceDTO.getFileType());
+            newResource.setSortOrder(resourceDTO.getSortOrder());
 
             PropertyResource savedResource = propertyResourcesRepository.save(newResource);
             return convertToResourceResponseDTO(savedResource);
         }
+
 
         // ✅ Ensure resource belongs to the correct property
         if (!existingResource.getPropertyId().equals(property.getId())) {
@@ -407,6 +454,15 @@ public class PropertyService {
         }
         if (resourceDTO.getDescription() != null) {
             existingResource.setDescription(resourceDTO.getDescription());
+        }
+        if (resourceDTO.getFileSize() != null) {
+            existingResource.setFileSize(resourceDTO.getFileSize());
+        }
+        if (resourceDTO.getFileType() != null) {
+            existingResource.setFileType(resourceDTO.getFileType());
+        }
+        if (resourceDTO.getSortOrder() != null) {
+            existingResource.setSortOrder(resourceDTO.getSortOrder());
         }
         // ✅ Save updated resource
         PropertyResource updatedResource = propertyResourcesRepository.save(existingResource);

@@ -105,7 +105,17 @@ public class Property {
     private BigDecimal longitude;
 
     private String videoUrl;
-
+    private String streetFrontage;
+    private String zoningClassification;
+    @ElementCollection
+    private List<String> accessibilityFeatures;
+    private Boolean publicTransportAvailable;
+    private Boolean highFootTraffic;
+    private Boolean internetAvailability;
+    private Boolean gasAvailability;
+    private Boolean sewageAvailability;
+    private BigDecimal availableLeaseArea;
+    private String floorPlanUrl;
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -149,7 +159,7 @@ public class Property {
     }
 
     public enum AreaUnit {
-        SQ_FT, SQ_YARDS, ACRES, HECTARES, DISMIL
+        SQ_FT, SQ_YARDS, ACRES, HECTARES, DISMIL //Area Unit Mai Incude karan hai aur fileds
     }
 
     public enum FurnishedStatus {
