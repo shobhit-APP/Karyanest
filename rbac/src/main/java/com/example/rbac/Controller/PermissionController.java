@@ -1,6 +1,8 @@
 package com.example.rbac.Controller;
 
 import com.example.rbac.DTO.AssignPermissionRequestDTO;
+import com.example.rbac.DTO.PermissionDTO;
+import com.example.rbac.DTO.PermissionResponseDTO;
 import com.example.rbac.Model.Permissions;
 import com.example.rbac.Model.Roles;
 import com.example.rbac.Service.AssignPermissionsService;
@@ -39,12 +41,19 @@ public class PermissionController {
                 .body(Map.of("message", "Routes Created Successfully", "routes", createdPermissions));
     }
 
-    @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('view_permission')")
-    public ResponseEntity<Map<String, Object>> getAllPermissions() {
-        List<Permissions> permissions = permissionsService.getAllPermissions();
-        return ResponseEntity.ok()
-                .body(Map.of("message", "Permissions Retrieved Successfully", "permissions", permissions));
+    @GetMapping
+    public ResponseEntity<PermissionResponseDTO> getAllPermissions() {
+        List<Permissions> permissionList = permissionsService.getAllPermissions(); // from DB
+        List<PermissionDTO> dtoList = permissionList.stream()
+                .map(p -> new PermissionDTO(
+                        p.getId(),
+                        p.getDescription(),
+                        p.getName(),
+                        p.getPermission()))
+                .toList();
+
+        return ResponseEntity.ok(new PermissionResponseDTO(dtoList));
     }
 
     @GetMapping("/{id}")
