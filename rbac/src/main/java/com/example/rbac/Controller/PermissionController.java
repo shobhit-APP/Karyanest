@@ -32,6 +32,8 @@ public class PermissionController {
 
     @Autowired
     private PermissionsService permissionsService;
+    @Autowired
+    private AssignPermissionsService assignPermissionsService;
 
     @PostMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('create_permission')")
@@ -63,5 +65,28 @@ public class PermissionController {
         return permission.map(permissions -> ResponseEntity.ok()
                 .body(Map.of("message", "Permission Retrieved Successfully", "permission", permissions))).orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(Map.of("message", "Permission not found with id: " + id)));
+    }
+    /**
+     * Assigns a permission to a role. Only accessible to users with ROLE_ADMIN role and assign_permission_to_role authority.
+     * @param request DTO containing roleId and permission
+     * @return ResponseEntity with success message
+     */
+    @PostMapping("/assign_permission")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('assign_PermissionToRole')")
+    public ResponseEntity<Map<String, Object>> assignPermissionToRole(@RequestBody AssignPermissionRequestDTO request) {
+        assignPermissionsService.assignPermissionToRole(request.getRoleId(), request.getPermissionIds());
+        return ResponseEntity.ok(Map.of("message", "Permission assigned to role successfully"));
+    }
+    /**
+     * Assigns a permission to a role. Only accessible to users with ROLE_ADMIN role and assign_permission_to_role authority.
+     * @param request DTO containing roleId and permission
+     * @return ResponseEntity with success message
+     *
+     */
+    @PutMapping("/update_permission")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('update_PermissionToRole')")
+    public ResponseEntity<Map<String, Object>> replaceAllPermission(@RequestBody AssignPermissionRequestDTO request) {
+        assignPermissionsService.replaceAllPermissionsForRole(request.getRoleId(), request.getPermissionIds());
+        return ResponseEntity.ok(Map.of("message", "Permission assigned to role successfully"));
     }
 }

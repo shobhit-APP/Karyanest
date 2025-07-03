@@ -26,4 +26,9 @@ public class RolesPermission {
     @ToString.Exclude
     private Permissions permissions;
 
+    public RolesPermission(Roles role, Permissions p) {
+        this.role = role;
+        this.permissions = p;
+    }
+
 }
