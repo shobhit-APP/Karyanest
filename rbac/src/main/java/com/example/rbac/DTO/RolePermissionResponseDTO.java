@@ -12,5 +12,7 @@ public class RolePermissionResponseDTO {
     private String name;
     private String permission;
     private String description;
-    private Long permissionId;
+    private  Long permissionId;
+    private Long roleId;
+    private String roleName;
 }

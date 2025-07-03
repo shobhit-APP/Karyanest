@@ -122,7 +122,7 @@ private Pair<Roles, List<Permissions>> validateAndFetchEntities(Long roleId, Lis
         return mappings.stream()
                 .map(rp -> {
                     Permissions p = rp.getPermissions();
-                    return new RolePermissionResponseDTO(p.getId(), p.getName(), p.getPermission(), p.getDescription(),rp.getId());
+                    return new RolePermissionResponseDTO(rp.getId(),p.getName(),p.getPermission(),p.getDescription(),p.getId(),rp.getRole().getId(),rp.getRole().getName());
                 })
                 .collect(Collectors.toList());
     }
@@ -133,7 +133,7 @@ private Pair<Roles, List<Permissions>> validateAndFetchEntities(Long roleId, Lis
         return mappings.stream()
                 .map(rp -> {
                     Permissions p = rp.getPermissions();
-                    return new RolePermissionResponseDTO(p.getId(), p.getName(), p.getPermission(), p.getDescription(),rp.getId());
+                    return new RolePermissionResponseDTO(rp.getId(),p.getName(),p.getPermission(),p.getDescription(),p.getId(),rp.getRole().getId(),rp.getRole().getName());
                 })
                 .collect(Collectors.toList());
     }
