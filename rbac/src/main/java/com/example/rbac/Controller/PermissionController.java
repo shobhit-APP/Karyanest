@@ -3,6 +3,7 @@ package com.example.rbac.Controller;
 import com.example.rbac.DTO.AssignPermissionRequestDTO;
 import com.example.rbac.DTO.PermissionDTO;
 import com.example.rbac.DTO.PermissionResponseDTO;
+import com.example.rbac.DTO.RolePermissionResponseDTO;
 import com.example.rbac.Model.Permissions;
 import com.example.rbac.Model.Roles;
 import com.example.rbac.Service.AssignPermissionsService;
@@ -89,4 +90,29 @@ public class PermissionController {
         assignPermissionsService.replaceAllPermissionsForRole(request.getRoleId(), request.getPermissionIds());
         return ResponseEntity.ok(Map.of("message", "Permission assigned to role successfully"));
     }
+    @GetMapping("/role_permission/{role_id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('getAllAssignPermissionByRoleId')")
+    public ResponseEntity<Map<String, Object>> allAssignedPermissionsByRoleId(@PathVariable Long role_id) {
+        List<RolePermissionResponseDTO> assignedPermissions = assignPermissionsService.getAllPermissionsForRoleId(role_id);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("permissions", assignedPermissions);
+        response.put("count", assignedPermissions.size());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/role_permission")
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('getAllAssignedPermission')")
+    public ResponseEntity<Map<String, Object>> allAssignedPermissions() {
+        List<RolePermissionResponseDTO> assignedPermissions = assignPermissionsService.getAllAssignedPermissions();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("permissions", assignedPermissions);
+        response.put("count", assignedPermissions.size());
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

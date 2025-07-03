@@ -1,5 +1,6 @@
 package com.example.rbac.Service;
 
+import com.example.rbac.DTO.RolePermissionResponseDTO;
 import com.example.rbac.Model.RolesPermission;
 import com.example.rbac.Model.Permissions;
 import com.example.rbac.Model.Roles;
@@ -109,6 +110,35 @@ private Pair<Roles, List<Permissions>> validateAndFetchEntities(Long roleId, Lis
 
         System.out.println("🔁 Replaced all permissions for role: " + role.getName());
     }
+
+    public List<RolePermissionResponseDTO> getAllPermissionsForRoleId(Long roleId) {
+        Roles role = roleService.getRoleById(roleId);
+        if (role == null) {
+            throw new IllegalArgumentException("Role not found with ID: " + roleId);
+        }
+
+        List<RolesPermission> mappings = rolesPermissionRepository.findAllByRole(role);
+
+        return mappings.stream()
+                .map(rp -> {
+                    Permissions p = rp.getPermissions();
+                    return new RolePermissionResponseDTO(p.getId(), p.getName(), p.getPermission(), p.getDescription(),rp.getId());
+                })
+                .collect(Collectors.toList());
+    }
+
+    public List<RolePermissionResponseDTO> getAllAssignedPermissions() {
+        List<RolesPermission> mappings = rolesPermissionRepository.findAll();
+
+        return mappings.stream()
+                .map(rp -> {
+                    Permissions p = rp.getPermissions();
+                    return new RolePermissionResponseDTO(p.getId(), p.getName(), p.getPermission(), p.getDescription(),rp.getId());
+                })
+                .collect(Collectors.toList());
+    }
+
+
 
 //public void assignPermissionToRole(Long roleId, List<Long> permissionIds) {
 //    // 1. Fetch the role by ID
