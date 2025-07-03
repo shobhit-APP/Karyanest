@@ -68,7 +68,7 @@ public class AddressesService {
     }
 
     public List<AddressResponseDTO> searchAddressesByKeyword(String keyword) {
-        List<Addresses> matchedAddresses = addressesRepository.findByLocationAddressContaining(keyword);
+        List<Addresses> matchedAddresses = addressesRepository.searchNative(keyword);
 
         return matchedAddresses.stream()
                 .map(this::convertToDTO)
