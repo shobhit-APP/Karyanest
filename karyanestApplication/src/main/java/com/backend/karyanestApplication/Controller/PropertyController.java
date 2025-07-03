@@ -634,6 +634,30 @@ public ResponseEntity<List<PropertyResourceDTO>> uploadPropertyResource(
                     .body(Map.of("error", "Error retrieving amenities", "details", e.getMessage()));
         }
     }
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('getAmenities_byId')")
+    @GetMapping("/amenities/{amenitiesId}")
+    public ResponseEntity<?> getAmenitiesById(@PathVariable Long amenitiesId) {
+        try {
+            Amenities amenities = amenitiesRepository.findById(amenitiesId)
+                    .orElseThrow(() -> new NoSuchElementException("Amenities not found with id: " + amenitiesId));
+            return ResponseEntity.ok(AmenitiesResponseDTO.convertToResponseDTO(amenities));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error retrieving amenities", "details", e.getMessage()));
+        }
+    }
+    @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('getAllAmenities')")
+    @GetMapping("/amenities")
+    public ResponseEntity<?> getAllAmenities() {
+        try {
+            List<Amenities> amenitiesList = amenitiesRepository.findAll();
+                // Set other fields as needed
+            return ResponseEntity.ok( AmenitiesResponseDTO.convertToResponseDTOList(amenitiesList));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error retrieving amenities", "details", e.getMessage()));
+        }
+    }
 
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('props_addAmenities')")
     @PostMapping("/{id}/add-amenities-only")
