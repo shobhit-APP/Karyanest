@@ -80,6 +80,10 @@ public class PermissionScanner {
                     PutMapping mapping = method.getAnnotation(PutMapping.class);
                     fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
                     httpMethod = "PUT";
+                } else if (method.isAnnotationPresent(PatchMapping.class)) {
+                    PatchMapping mapping = method.getAnnotation(PatchMapping.class);
+                    fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
+                    httpMethod = "PATCH";
                 } else if (method.isAnnotationPresent(DeleteMapping.class)) {
                     DeleteMapping mapping = method.getAnnotation(DeleteMapping.class);
                     fullPath += mapping.value().length > 0 ? mapping.value()[0] : "";
@@ -104,14 +108,12 @@ public class PermissionScanner {
         }
 
         // Fetch all existing permissions in one query
-
         List<Permissions> existingPermissions = permissionsRepository.findAll();
         Set<String> existingPermissionValues = existingPermissions.stream()
                 .map(Permissions::getPermission)
                 .collect(Collectors.toSet());
 
         // Fetch all existing roles in one query
-
         List<Roles> existingRoles = rolesRepository.findAll();
         Set<String> existingRoleValues = existingRoles.stream()
                 .map(Roles::getName)
@@ -127,32 +129,49 @@ public class PermissionScanner {
                     // Generate name from permission string
                     String[] parts = p.permission.split("_");
                     StringBuilder nameBuilder = new StringBuilder();
+                    StringBuilder descriptionBuilder = new StringBuilder();
 
                     if (parts.length > 1) {
                         switch (parts[1].toLowerCase()) {
                             case "create":
-                                nameBuilder.append("Create new ");
+                                nameBuilder.append("Create New ");
+                                descriptionBuilder.append("Enables the user to create new ");
                                 break;
                             case "delete":
                                 nameBuilder.append("Delete ");
+                                descriptionBuilder.append("Enables the user to delete existing ");
                                 break;
                             case "update":
                                 nameBuilder.append("Update ");
+                                descriptionBuilder.append("Enables the user to update existing ");
                                 break;
-                            case "view":
+                            case "get":
                                 nameBuilder.append("View ");
+                                descriptionBuilder.append("Enables the user to view details of ");
+                                break;
+                            case "patch":
+                                nameBuilder.append("Modify ");
+                                descriptionBuilder.append("Enables the user to partially modify ");
                                 break;
                             default:
                                 nameBuilder.append(capitalize(parts[1])).append(" ");
+                                descriptionBuilder.append("Enables the user to manage ").append(parts[1].toLowerCase()).append(" for ");
                                 break;
                         }
-                        nameBuilder.append(parts[0].replace("_", " "));
+                        if ("props".equals(parts[0])) {
+                            nameBuilder.append("Properties List");
+                            descriptionBuilder.append("properties list");
+                        } else {
+                            nameBuilder.append(parts[0].replace("_", " "));
+                            descriptionBuilder.append(parts[0].replace("_", " ").toLowerCase());
+                        }
                     } else {
                         nameBuilder.append(capitalize(p.permission.replace("_", " ")));
+                        descriptionBuilder.append("Enables the user to manage ").append(p.permission.replace("_", " ").toLowerCase());
                     }
 
                     permission.setName(nameBuilder.toString().trim());
-                    permission.setDescription("URL: " + p.url + ", Method: " + p.method + ", Authority: " + p.permission );
+                    permission.setDescription(descriptionBuilder.toString().trim() + " in the system.");
 
                     return permission;
                 })
@@ -194,4 +213,3 @@ public class PermissionScanner {
         return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
     }
 }
-
