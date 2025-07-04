@@ -26,12 +26,17 @@ public class RolesController {
 
     @GetMapping
     @PreAuthorize("hasRole('ROLE_ADMIN') or hasAuthority('roles_get')")
-    public ResponseEntity<Map<String, List<String>>> getAllRoles() {
+    public ResponseEntity<Map<String, List<Map<String, Object>>>> getAllRoles() {
         List<Roles> roles = roleService.getAllRoles();
-        List<String> roleNames = roles.stream()
-                .map(Roles::getName)
-                .toList();
-        return ResponseEntity.ok(Map.of("roleNames", roleNames));
+
+        List<Map<String, Object>> roleList = roles.stream().map(role -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("roleId", role.getId());    // renamed to roleId
+            map.put("name", role.getName());
+            return map;
+        }).toList();
+
+        return ResponseEntity.ok(Map.of("roles", roleList));
     }
 
     @PostMapping
