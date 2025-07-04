@@ -40,10 +40,14 @@ public class PropertyResource {
     private String fileType;
     private Integer sortOrder;
 
+    @Column(name = "upload_status")
+    @Enumerated(EnumType.STRING)
+    private UploadStatus uploadStatus; // To track file upload state
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private ZonedDateTime createdAt;
 
-    @Column(name = "update_at")
+    @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
 
     @PrePersist
@@ -58,10 +62,23 @@ public class PropertyResource {
     }
 
     public enum ResourceType {
-        Image, Video,Document
+        Image,
+        Video,
+        Document
     }
 
     public enum ResourceTitle {
-        Front, Interior, Floorplan, Aerial
+        Front,
+        Interior,
+        Floorplan,
+        Aerial,
+        Bedroom, // Added for bedroom-specific images
+        Agreement // Added for document types like agreement.pdf
+    }
+
+    public enum UploadStatus {
+        PENDING,
+        UPLOADED,
+        FAILED
     }
 }

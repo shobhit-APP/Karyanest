@@ -21,7 +21,7 @@ public class PropertyResourceDTO {
     private String fileId;
     private String description;
 
-    // 🔽 New fields added
+    // Existing fields
     private Long fileSize;
     private String fileType;
     private Integer sortOrder;
@@ -32,6 +32,9 @@ public class PropertyResourceDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Kolkata")
     private ZonedDateTime updateAt;
 
+    // Additional field for upload status (from UI context)
+    private PropertyResource.UploadStatus uploadStatus;
+
     public PropertyResourceDTO(PropertyResource propertyResource) {
         this.id = propertyResource.getId();
         this.propertyId = propertyResource.getPropertyId();
@@ -40,13 +43,11 @@ public class PropertyResourceDTO {
         this.url = propertyResource.getUrl();
         this.fileId = propertyResource.getFileId();
         this.description = propertyResource.getDescription();
-
-        // 🔽 Add getters when available in entity
         this.fileSize = propertyResource.getFileSize();
         this.fileType = propertyResource.getFileType();
         this.sortOrder = propertyResource.getSortOrder();
-
         this.createdAt = propertyResource.getCreatedAt();
         this.updateAt = propertyResource.getUpdatedAt();
+        this.uploadStatus = propertyResource.getUploadStatus(); // Assuming getter exists
     }
 }

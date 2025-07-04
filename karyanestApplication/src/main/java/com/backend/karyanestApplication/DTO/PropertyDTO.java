@@ -74,6 +74,16 @@ public class PropertyDTO {
 
     private Map<String, Object> extraFields = new HashMap<>();
 
+    // Additional Fields from UI and Model
+    private BigDecimal width;
+    private BigDecimal length;
+    private Property.FacingDirection landFacing;
+    private Boolean waterSupply;
+    private Boolean electricity;
+    private Boolean sewage;
+    private Property.Topography topography;
+    private String developmentPotential;
+
     public PropertyDTO(Property property) {
         this.id = property.getId();
         this.title = property.getTitle();
@@ -123,6 +133,16 @@ public class PropertyDTO {
         this.verificationStatus = property.getVerificationStatus();
         this.propertyResources = new ArrayList<>();
         this.amenitiesResponseDTOS = new ArrayList<>();
+
+        // Additional Fields
+        this.width = property.getWidth();
+        this.length = property.getLength();
+        this.landFacing = property.getLandFacing();
+        this.waterSupply = property.getWaterSupply();
+        this.electricity = property.getElectricity();
+        this.sewage = property.getSewage();
+        this.topography = property.getTopography();
+        this.developmentPotential = property.getDevelopmentPotential();
         // Note: amenities field will be set by PropertyService
     }
 

@@ -134,6 +134,31 @@ public class Property {
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL)
     private List<PropertyPriceChange> priceChanges = new ArrayList<>();
+    @Column(name = "width", precision = 10, scale = 2)
+    private BigDecimal width;
+
+    @Column(name = "length", precision = 10, scale = 2)
+    private BigDecimal length;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "land_facing")
+    private FacingDirection landFacing;
+
+    @Column(name = "water_supply")
+    private Boolean waterSupply;
+
+    @Column(name = "electricity")
+    private Boolean electricity;
+
+    @Column(name = "sewage")
+    private Boolean sewage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "topography")
+    private Topography topography;
+
+    @Column(name = "development_potential", columnDefinition = "TEXT")
+    private String developmentPotential;
 
     @PrePersist
     protected void onCreate() {
@@ -145,9 +170,17 @@ public class Property {
     protected void onUpdate() {
         this.updatedAt = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
     }
+    public enum Topography {
+        FLAT,
+        SLOPING,
+        HILLY,
+        UNDULATING,
+        ROCKY,
+        MARSHY
+    }
 
     public enum PropertyType {
-        FLAT, PLOT, LAND, HOUSE, VILLA, APARTMENT
+        FLAT, PLOT, LAND, HOUSE, VILLA, APARTMENT,OFFICE
     }
 
     public enum Status {

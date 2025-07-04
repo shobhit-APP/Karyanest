@@ -19,4 +19,9 @@ public class PropertySearchRequestDTO {
     private Integer bedrooms;
     private Integer bathrooms;
     private String amenities;
+    public boolean isEmpty() {
+        return (minPrice == null && maxPrice == null && propertyType == null &&
+                listingType == null && (locationAddress == null || locationAddress.isBlank()) &&
+                (amenities == null || amenities.isEmpty()) && bedrooms == 0 && bathrooms == 0);
+    }
 }

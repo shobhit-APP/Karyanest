@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
+
 @Service
 public class PropertyService {
     @Autowired
@@ -149,7 +150,7 @@ public class PropertyService {
     /**
      * Helper method to save property resources.
      */
-    private void savePropertyResources(com.backend.karyanestApplication.Model.Property property, List<PropertyResourceDTO> resourceDTOs) {
+    private void savePropertyResources(Property property, List<PropertyResourceDTO> resourceDTOs) {
         if (resourceDTOs != null && !resourceDTOs.isEmpty()) {
             for (PropertyResourceDTO resourceDTO : resourceDTOs) {
                 PropertyResource resource = new PropertyResource();
@@ -162,6 +163,7 @@ public class PropertyService {
                 resource.setFileSize(resourceDTO.getFileSize());
                 resource.setFileType(resourceDTO.getFileType());
                 resource.setSortOrder(resourceDTO.getSortOrder());
+                resource.setUploadStatus(resourceDTO.getUploadStatus()); // Added for upload status
 
                 propertyResourcesRepository.save(resource);
             }
@@ -170,7 +172,7 @@ public class PropertyService {
 
     private void saveAmenitiesFromDTO(PropertyDTO propertyDTO, Property property) {
         if (propertyDTO.getAmenitiesResponseDTOS() != null && !propertyDTO.getAmenitiesResponseDTOS().isEmpty()) {
-//            amenitiesRepository.deleteByPropertyId(property.getId());
+            amenitiesRepository.deleteByPropertyId(property.getId());
             for (AmenitiesResponseDTO amenitiesDTO : propertyDTO.getAmenitiesResponseDTOS()) {
                 Amenities amenities = new Amenities();
                 amenities.setPropertyId(property.getId());
@@ -185,7 +187,7 @@ public class PropertyService {
             return;
         }
 
-//        amenitiesRepository.deleteByPropertyId(property.getId());
+        amenitiesRepository.deleteByPropertyId(property.getId());
         String amenitiesString = propertyDTO.getAmenities();
         if (amenitiesString != null && !amenitiesString.trim().isEmpty()) {
             List<String> amenitiesList = Arrays.stream(amenitiesString.split("\\s*,\\s*"))
@@ -225,13 +227,11 @@ public class PropertyService {
         if (requestDTO.getTotalFloors() != null) property.setTotalFloors(requestDTO.getTotalFloors());
         if (requestDTO.getOwnershipType() != null) property.setOwnershipType(requestDTO.getOwnershipType());
         if (requestDTO.getAgeOfProperty() != null) property.setAgeOfProperty(requestDTO.getAgeOfProperty());
-        if (requestDTO.getConstructionStatus() != null)
-            property.setConstructionStatus(requestDTO.getConstructionStatus());
+        if (requestDTO.getConstructionStatus() != null) property.setConstructionStatus(requestDTO.getConstructionStatus());
         if (requestDTO.getFacingDirection() != null) property.setFacingDirection(requestDTO.getFacingDirection());
         if (requestDTO.getRoadWidth() != null) property.setRoadWidth(requestDTO.getRoadWidth());
         if (requestDTO.getWaterAvailability() != null) property.setWaterAvailability(requestDTO.getWaterAvailability());
-        if (requestDTO.getElectricityAvailability() != null)
-            property.setElectricityAvailability(requestDTO.getElectricityAvailability());
+        if (requestDTO.getElectricityAvailability() != null) property.setElectricityAvailability(requestDTO.getElectricityAvailability());
         if (requestDTO.getSecurityFeatures() != null) property.setSecurityFeatures(requestDTO.getSecurityFeatures());
         if (requestDTO.getNearbyLandmarks() != null) property.setNearbyLandmarks(requestDTO.getNearbyLandmarks());
         if (requestDTO.getLocationAddress() != null) property.setLocationAddress(requestDTO.getLocationAddress());
@@ -253,6 +253,15 @@ public class PropertyService {
         if (requestDTO.getZoningClassification() != null) property.setZoningClassification(requestDTO.getZoningClassification());
         if (requestDTO.getAccessibilityFeatures() != null) property.setAccessibilityFeatures(requestDTO.getAccessibilityFeatures());
 
+        // Added extra fields
+        if (requestDTO.getWidth() != null) property.setWidth(requestDTO.getWidth());
+        if (requestDTO.getLength() != null) property.setLength(requestDTO.getLength());
+        if (requestDTO.getLandFacing() != null) property.setLandFacing(requestDTO.getLandFacing());
+        if (requestDTO.getWaterSupply() != null) property.setWaterSupply(requestDTO.getWaterSupply());
+        if (requestDTO.getElectricity() != null) property.setElectricity(requestDTO.getElectricity());
+        if (requestDTO.getSewage() != null) property.setSewage(requestDTO.getSewage());
+        if (requestDTO.getTopography() != null) property.setTopography(requestDTO.getTopography());
+        if (requestDTO.getDevelopmentPotential() != null) property.setDevelopmentPotential(requestDTO.getDevelopmentPotential());
     }
 
     private void mapPropertyDTOToEntity(PropertyCreateDTO dto, Property property) {
@@ -277,7 +286,6 @@ public class PropertyService {
         if (dto.getNearbyLandmarks() != null) property.setNearbyLandmarks(dto.getNearbyLandmarks());
         if (dto.getOwnershipType() != null) property.setOwnershipType(dto.getOwnershipType());
         if (dto.getConstructionStatus() != null) property.setConstructionStatus(dto.getConstructionStatus());
-        // ✅ Additional fields
         if (dto.getRoadWidth() != null) property.setRoadWidth(dto.getRoadWidth());
         if (dto.getWaterAvailability() != null) property.setWaterAvailability(dto.getWaterAvailability());
         if (dto.getElectricityAvailability() != null) property.setElectricityAvailability(dto.getElectricityAvailability());
@@ -290,8 +298,17 @@ public class PropertyService {
         if (dto.getStreetFrontage() != null) property.setStreetFrontage(dto.getStreetFrontage());
         if (dto.getZoningClassification() != null) property.setZoningClassification(dto.getZoningClassification());
         if (dto.getAccessibilityFeatures() != null) property.setAccessibilityFeatures(dto.getAccessibilityFeatures());
-    }
 
+        // Added extra fields
+        if (dto.getWidth() != null) property.setWidth(dto.getWidth());
+        if (dto.getLength() != null) property.setLength(dto.getLength());
+        if (dto.getLandFacing() != null) property.setLandFacing(dto.getLandFacing());
+        if (dto.getWaterSupply() != null) property.setWaterSupply(dto.getWaterSupply());
+        if (dto.getElectricity() != null) property.setElectricity(dto.getElectricity());
+        if (dto.getSewage() != null) property.setSewage(dto.getSewage());
+        if (dto.getTopography() != null) property.setTopography(dto.getTopography());
+        if (dto.getDevelopmentPotential() != null) property.setDevelopmentPotential(dto.getDevelopmentPotential());
+    }
 
     private void updateNonNullFields(PropertyCreateDTO dto, Property property) {
         if (dto.getDraftId() != null) property.setId(dto.getDraftId());
@@ -329,6 +346,15 @@ public class PropertyService {
         if (dto.getZoningClassification() != null) property.setZoningClassification(dto.getZoningClassification());
         if (dto.getAccessibilityFeatures() != null) property.setAccessibilityFeatures(dto.getAccessibilityFeatures());
 
+        // Added extra fields
+        if (dto.getWidth() != null) property.setWidth(dto.getWidth());
+        if (dto.getLength() != null) property.setLength(dto.getLength());
+        if (dto.getLandFacing() != null) property.setLandFacing(dto.getLandFacing());
+        if (dto.getWaterSupply() != null) property.setWaterSupply(dto.getWaterSupply());
+        if (dto.getElectricity() != null) property.setElectricity(dto.getElectricity());
+        if (dto.getSewage() != null) property.setSewage(dto.getSewage());
+        if (dto.getTopography() != null) property.setTopography(dto.getTopography());
+        if (dto.getDevelopmentPotential() != null) property.setDevelopmentPotential(dto.getDevelopmentPotential());
     }
 
     @Transactional(readOnly = true)
@@ -347,7 +373,6 @@ public class PropertyService {
         propertyRepository.save(property);
     }
 
-    // ✅ Update property price and record price change
     @Transactional
     public PropertyDTO updatePropertyPriceOnly(BigDecimal newPrice, com.backend.karyanestApplication.Model.Property property, BigDecimal oldPrice, User user) {
         property.setPrice(newPrice);
@@ -365,11 +390,9 @@ public class PropertyService {
 
     @Transactional
     public PropertyResourceDTO addPropertyResource(Long propertyId, PropertyResourceDTO resourceDTO) {
-        // Fetch property or throw an exception
         com.backend.karyanestApplication.Model.Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new CustomException("Property Not Found"));
 
-        // Create new property resource
         PropertyResource resource = new PropertyResource();
         resource.setPropertyId(property.getId());
         resource.setResourceType(resourceDTO.getResourceType());
@@ -380,8 +403,8 @@ public class PropertyService {
         resource.setFileSize(resourceDTO.getFileSize());
         resource.setFileType(resourceDTO.getFileType());
         resource.setSortOrder(resourceDTO.getSortOrder());
+        resource.setUploadStatus(resourceDTO.getUploadStatus()); // Added for upload status
 
-        // Save the resource
         PropertyResource savedResource = propertyResourcesRepository.save(resource);
 
         return convertToResourceResponseDTO(savedResource);
@@ -403,20 +426,16 @@ public class PropertyService {
     }
 
     private PropertyResourceDTO convertToResourceResponseDTO(PropertyResource updatedResource) {
-        // Map property resources
         return new PropertyResourceDTO(updatedResource);
     }
 
     @Transactional
     public PropertyResourceDTO updateOrCreatePropertyResource(Long propertyId, Long resourceId, PropertyResourceDTO resourceDTO) {
-        // ✅ Check if property exists
         com.backend.karyanestApplication.Model.Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new CustomException("No property found for the given property ID, so we cannot update resources."));
 
-        // ✅ Try to fetch existing resource
         PropertyResource existingResource = propertyResourcesRepository.findById(resourceId).orElse(null);
 
-        // ✅ If resource not found, create a new one
         if (existingResource == null) {
             PropertyResource newResource = new PropertyResource();
             newResource.setPropertyId(property.getId());
@@ -428,43 +447,26 @@ public class PropertyService {
             newResource.setFileSize(resourceDTO.getFileSize());
             newResource.setFileType(resourceDTO.getFileType());
             newResource.setSortOrder(resourceDTO.getSortOrder());
+            newResource.setUploadStatus(resourceDTO.getUploadStatus()); // Added for upload status
 
             PropertyResource savedResource = propertyResourcesRepository.save(newResource);
             return convertToResourceResponseDTO(savedResource);
         }
 
-
-        // ✅ Ensure resource belongs to the correct property
         if (!existingResource.getPropertyId().equals(property.getId())) {
             throw new CustomException("Resource does not belong to the specified property");
         }
 
-        // ✅ Update only non-null fields
-        if (resourceDTO.getResourceType() != null) {
-            existingResource.setResourceType(resourceDTO.getResourceType());
-        }
-        if (resourceDTO.getTitle() != null) {
-            existingResource.setTitle(resourceDTO.getTitle());
-        }
-        if (resourceDTO.getUrl() != null) {
-            existingResource.setUrl(resourceDTO.getUrl());
-        }
-        if (resourceDTO.getFileId() != null) {
-            existingResource.setFileId(resourceDTO.getFileId());
-        }
-        if (resourceDTO.getDescription() != null) {
-            existingResource.setDescription(resourceDTO.getDescription());
-        }
-        if (resourceDTO.getFileSize() != null) {
-            existingResource.setFileSize(resourceDTO.getFileSize());
-        }
-        if (resourceDTO.getFileType() != null) {
-            existingResource.setFileType(resourceDTO.getFileType());
-        }
-        if (resourceDTO.getSortOrder() != null) {
-            existingResource.setSortOrder(resourceDTO.getSortOrder());
-        }
-        // ✅ Save updated resource
+        if (resourceDTO.getResourceType() != null) existingResource.setResourceType(resourceDTO.getResourceType());
+        if (resourceDTO.getTitle() != null) existingResource.setTitle(resourceDTO.getTitle());
+        if (resourceDTO.getUrl() != null) existingResource.setUrl(resourceDTO.getUrl());
+        if (resourceDTO.getFileId() != null) existingResource.setFileId(resourceDTO.getFileId());
+        if (resourceDTO.getDescription() != null) existingResource.setDescription(resourceDTO.getDescription());
+        if (resourceDTO.getFileSize() != null) existingResource.setFileSize(resourceDTO.getFileSize());
+        if (resourceDTO.getFileType() != null) existingResource.setFileType(resourceDTO.getFileType());
+        if (resourceDTO.getSortOrder() != null) existingResource.setSortOrder(resourceDTO.getSortOrder());
+        if (resourceDTO.getUploadStatus() != null) existingResource.setUploadStatus(resourceDTO.getUploadStatus()); // Added for upload status
+
         PropertyResource updatedResource = propertyResourcesRepository.save(existingResource);
         return convertToResourceResponseDTO(updatedResource);
     }
@@ -538,21 +540,35 @@ public class PropertyService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ Search properties based on criteria
+
     @Transactional
     public List<PropertyDTO> searchProperties(PropertySearchRequestDTO dto) {
-        List<com.backend.karyanestApplication.Model.Property> properties = propertyRepository.searchProperties(
-                dto.getMinPrice(),
-                dto.getMaxPrice(),
-                dto.getPropertyType() != null ? dto.getPropertyType().name() : null,
-                dto.getListingType() != null ? dto.getListingType().name() : null,
-                dto.getLocationAddress(),
-                dto.getAmenities(),
-                dto.getBedrooms(),
-                dto.getBathrooms()
-        );
-        return convertToResponseDTOList(properties, propertyResourcesRepository.findAll(), amenitiesRepository.findAll());
+
+        List<com.backend.karyanestApplication.Model.Property> properties;
+
+        if (dto.isEmpty()) {
+            // If no filters provided, return all properties
+            properties = propertyRepository.findAll();
+        } else {
+            // Apply filter-based search
+            properties = propertyRepository.searchProperties(
+                    dto.getMinPrice(),
+                    dto.getMaxPrice(),
+                    dto.getPropertyType() != null ? dto.getPropertyType().name() : null,
+                    dto.getListingType() != null ? dto.getListingType().name() : null,
+                    dto.getLocationAddress(),
+                    dto.getAmenities(),
+                    dto.getBedrooms(),
+                    dto.getBathrooms()
+            );
+        }
+
+        return convertToResponseDTOList(properties,
+                propertyResourcesRepository.findAll(),
+                amenitiesRepository.findAll());
     }
+
+
     @Transactional
     public List<AmenitiesResponseDTO> processAmenities(Long propertyId, String amenitiesString, boolean replaceAll) {
         if (propertyId == null || amenitiesString == null || amenitiesString.trim().isEmpty()) {
@@ -568,11 +584,9 @@ public class PropertyService {
                 .toList();
 
         if (replaceAll) {
-            // 🧹 Replace mode: delete all previous
             amenitiesRepository.deleteByPropertyId(propertyId);
         }
 
-        // 📌 Get current after possible delete
         Set<String> existing = amenitiesRepository.findByPropertyId(propertyId).stream()
                 .map(Amenities::getAmenities)
                 .collect(Collectors.toSet());
@@ -595,6 +609,7 @@ public class PropertyService {
                 amenitiesRepository.findByPropertyId(propertyId)
         );
     }
+
     @Transactional
     public AmenitiesResponseDTO deleteAmenityById(Long id) {
         Amenities amenity = amenitiesRepository.findById(id)
@@ -604,6 +619,4 @@ public class PropertyService {
 
         return AmenitiesResponseDTO.convertToResponseDTO(amenity);
     }
-
-
 }

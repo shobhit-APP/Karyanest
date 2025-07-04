@@ -56,5 +56,15 @@ public class PropertyCreateDTO {
     // Page 3: Legal & Compliance
     private Property.OwnershipType ownershipType;
     private Property.ConstructionStatus constructionStatus;
-}
 
+    // Additional Fields from UI and Model
+    private BigDecimal width; // From land/plot dimensions
+    private BigDecimal length; // From land/plot dimensions
+    private Property.FacingDirection landFacing; // From land facing
+    private Boolean waterSupply; // Explicit water supply checkbox
+    private Boolean electricity; // Explicit electricity checkbox
+    private Boolean sewage; // Explicit sewage checkbox
+    private Property.Topography topography; // From topography (sloping)
+    private String developmentPotential; // From development potential
+    private String emailAddress; // From owner email
+}
