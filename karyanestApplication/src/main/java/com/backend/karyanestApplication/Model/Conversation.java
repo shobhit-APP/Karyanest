@@ -23,6 +23,9 @@ public class Conversation {
     private Long propertyId; // Store Property ID (nullable for non-property chats)
     @Column(name="propertyOwnerId")
     private Long propertyOwnerId;
+    @Column(name="assigned_id")
+    private Long assignedId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ConversationType type; // Type of conversation

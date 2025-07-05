@@ -14,4 +14,5 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     List<Conversation> findByInitiatorIdOrReceiverId(Long initiatorId, Long receiverId);
     List<Conversation> findByInitiatorId(Long initiatorId);
     Optional<Conversation> findByPropertyIdAndInitiatorIdAndReceiverIdAndTypeAndStatus(Long propertyId, Long initiatorId, Long receiverId, Conversation.ConversationType conversationType, Conversation.ConversationStatus conversationStatus);
+    List<Conversation> findByInitiatorIdOrReceiverIdOrAssignedId(Long userId, Long userId1, Long userId2);
 }

@@ -49,34 +49,38 @@ public class ChatService {
     }
     public Map<String, Object> canSendMessage(Long senderId, Long conversationId, String senderRole) {
         Map<String, Object> result = new HashMap<>();
-        Optional<Conversation> conversation = conversationRepository.findById(conversationId);
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
 
-        if (!conversation.isPresent()) {
-            logger.warn("Conversation not found for conversationId: {}", conversationId);
+        if (!conversationOpt.isPresent()) {
             result.put("canSend", false);
             result.put("reason", "Conversation not found");
             return result;
         }
 
-        Conversation chat = conversation.get();
+        Conversation chat = conversationOpt.get();
 
-        // Check if chat is closed
         if (Conversation.ConversationStatus.CLOSED.equals(chat.getStatus())) {
-            logger.info("Chat closed for conversationId: {}, senderId: {}", conversationId, senderId);
             result.put("canSend", false);
             result.put("reason", "Chat is closed");
             return result;
         }
 
-        // Check if sender is participant or admin
-        boolean isParticipant = (chat.getInitiatorId() != null && chat.getInitiatorId().equals(senderId)) ||
-                (chat.getReceiverId() != null && chat.getReceiverId().equals(senderId));
+        boolean isParticipant = senderId.equals(chat.getInitiatorId()) ||
+                senderId.equals(chat.getReceiverId()) ||
+                (chat.getAssignedId() != null && senderId.equals(chat.getAssignedId()));
+
         boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(senderRole);
+        boolean isAgent = "ROLE_AGENT".equalsIgnoreCase(senderRole);
 
         if (!isParticipant && !isAdmin) {
-            logger.warn("Unauthorized attempt to send message, senderId: {}, conversationId: {}", senderId, conversationId);
             result.put("canSend", false);
             result.put("reason", "You are not authorized to send this message");
+            return result;
+        }
+
+        if (chat.getAssignedId() != null && chat.getAssignedId().equals(senderId) && isAgent) {
+            result.put("canSend", false);
+            result.put("reason", "Agent is not allowed to send messages");
             return result;
         }
 
@@ -84,51 +88,6 @@ public class ChatService {
         result.put("reason", null);
         return result;
     }
-    //   @Transactional
-//    public Conversation createChat(ChatRequest request, Long InitiatorId, Long ReceiverId) {
-//        Conversation conversation = new Conversation();
-//        conversation.setInitiatorId(InitiatorId);
-//        conversation.setReceiverId(ReceiverId);
-//        conversation.setPropertyOwnerId(request.getPropertyOwnerId());
-//        conversation.setType(Conversation.ConversationType.valueOf(request.getType()));
-//        conversation.setStatus(Conversation.ConversationStatus.OPEN);
-//        if (request.getType().equals("PROPERTY_INQUIRY")) {
-//            conversation.setPropertyId(request.getPropertyId());  // 🔥 Property ID Set Karo
-//        }
-//        return conversationRepository.save(conversation);
-//    }
-//@Transactional
-//public Conversation createChat(ChatRequest request, Long initiatorId, Long receiverId) {
-//    // Only for PROPERTY_INQUIRY
-//    if (request.getType().equals("PROPERTY_INQUIRY")) {
-//        Optional<Conversation> existingConversation = conversationRepository
-//                .findByPropertyIdAndInitiatorIdAndReceiverIdAndTypeAndStatus(
-//                        request.getPropertyId(),
-//                        initiatorId,
-//                        receiverId,
-//                        Conversation.ConversationType.valueOf(request.getType()),
-//                        Conversation.ConversationStatus.OPEN
-//                );
-//
-//        if (existingConversation.isPresent()) {
-//            return existingConversation.get(); // 🔁 Return existing instead of creating new
-//        }
-//    }
-//
-//    // ⬇️ Create new if not found
-//    Conversation conversation = new Conversation();
-//    conversation.setInitiatorId(initiatorId);
-//    conversation.setReceiverId(receiverId);
-//    conversation.setPropertyOwnerId(request.getPropertyOwnerId());
-//    conversation.setType(Conversation.ConversationType.valueOf(request.getType()));
-//    conversation.setStatus(Conversation.ConversationStatus.OPEN);
-//
-//    if (request.getType().equals("PROPERTY_INQUIRY")) {
-//        conversation.setPropertyId(request.getPropertyId());
-//    }
-//
-//    return conversationRepository.save(conversation);
-//}
     @Transactional
     public Map<String, Object> createChat(ChatRequest request, Long initiatorId, Long receiverId) {
         Conversation conversation;
@@ -139,8 +98,8 @@ public class ChatService {
                     .findByPropertyIdAndInitiatorIdAndReceiverIdAndTypeAndStatus(
                             request.getPropertyId(),
                             initiatorId,
-                            receiverId,
-                            Conversation.ConversationType.valueOf(request.getType()),
+                            receiverId, // ✅ Default assigned user = admin
+                           Conversation.ConversationType.valueOf(request.getType()),
                             Conversation.ConversationStatus.OPEN
                     );
 
@@ -166,7 +125,9 @@ public class ChatService {
     private Conversation createNewConversation(ChatRequest request, Long initiatorId, Long receiverId) {
         Conversation conversation = new Conversation();
         conversation.setInitiatorId(initiatorId);
-        conversation.setReceiverId(1L); // ✅ Always admin
+        conversation.setReceiverId(1L);
+        conversation.setAssignedId(1L); // ✅ Default assigned user = admin
+        // ✅ Always admin
         conversation.setPropertyOwnerId(request.getPropertyOwnerId());
         conversation.setType(Conversation.ConversationType.valueOf(request.getType()));
         conversation.setStatus(Conversation.ConversationStatus.OPEN);
@@ -178,62 +139,21 @@ public class ChatService {
         return conversationRepository.save(conversation);
     }
 
-
-
-//
-//    public ResponseEntity<List<Map<String, Object>>> getMessages(Long conversationId) {
-//        List<Message> messages = messageRepository.findByConversationId(conversationId);
-//
-//        if (messages == null || messages.isEmpty()) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-//                    .body(Collections.emptyList());
-//        }
-//
-//        Set<Long> participants = messages.stream()
-//                .map(Message::getSenderId)
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toSet());
-//
-//        if (participants.size() < 2) {
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-//                    .body(Collections.emptyList());
-//        }
-//
-//        // ✅ Format messages with name and status
-//        List<Map<String, Object>> formattedMessages = messages.stream().map(msg -> {
-//            Map<String, Object> map = new HashMap<>();
-//            map.put("senderId", msg.getSenderId());
-//            map.put("message", msg.getMessage() != null ? msg.getMessage() : "No message content");
-//            map.put("timestamp", msg.getTimestamp() != null ? msg.getTimestamp().toString() : null);
-//
-//            // ✅ Add sender name
-//               User user= userService.findById(msg.getSenderId()); // You need to implement this method
-//               map.put("name", user.getFullName());
-//
-//            // ✅ Add status
-//            map.put("status", true);
-//
-//            return map;
-//        }).collect(Collectors.toList());
-//
-//
-//
-//        return ResponseEntity.ok(formattedMessages);
-//    }
-
     public List<Map<String, Object>> getAllConversationsForUser(Long userId) {
-        List<Conversation> conversations = conversationRepository.findByInitiatorIdOrReceiverId(userId, userId);
+        // 🔁 Fetch conversations where the user is initiator, receiver, or assigned
+        List<Conversation> conversations = conversationRepository.findByInitiatorIdOrReceiverIdOrAssignedId(userId, userId, userId);
 
         if (conversations.isEmpty()) return Collections.emptyList();
 
-        // Collect all user IDs involved in the conversations
+        // Collect all related userIds (initiator, receiver, assigned)
         Set<Long> userIds = conversations.stream()
-                .flatMap(c -> Stream.of(c.getInitiatorId(), c.getReceiverId()))
+                .flatMap(c -> Stream.of(c.getInitiatorId(), c.getReceiverId(), c.getAssignedId()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        userIds.add(1L); // ensure user with ID=1 (admin) is included
+        userIds.add(1L); // always include admin
 
+        // Get user map
         List<User> users = userRepo.findAllById(userIds);
         Map<Long, User> userMap = users.stream()
                 .filter(Objects::nonNull)
@@ -247,15 +167,12 @@ public class ChatService {
 
             Long initiatorId = conv.getInitiatorId();
             Long receiverId = conv.getReceiverId();
+            Long assignedId = conv.getAssignedId();
 
-            if (initiatorId == null || receiverId == null) continue;
+            if (initiatorId == null && receiverId == null && assignedId == null) continue;
 
-            // Filter logic
-            if (userId != 1 && !Objects.equals(initiatorId, userId)) continue;
-
-            User initiator = userMap.get(initiatorId);
-            User receiver = userMap.get(receiverId);
-            if (initiator == null || receiver == null) continue;
+            // ✅ Skip if the user is not a participant (extra safety)
+            if (!userId.equals(initiatorId) && !userId.equals(receiverId) && !userId.equals(assignedId)) continue;
 
             Message lastMessage = messageRepository.findTopByConversationIdOrderByTimestampDesc(conv.getId());
 
@@ -265,12 +182,17 @@ public class ChatService {
             conversationData.put("status", conv.getStatus() != null ? conv.getStatus() : "unknown");
             conversationData.put("type", conv.getType() != null ? conv.getType() : "unknown");
 
-            // ✅ Receiver logic based on userId
-            User displayUser;
-            if (userId == 1L) {
-                displayUser = initiator;
+            // ✅ Determine "other" participant to show as receiver
+            User displayUser = null;
+
+            if (!Objects.equals(userId, initiatorId) && userMap.containsKey(initiatorId)) {
+                displayUser = userMap.get(initiatorId);
+            } else if (!Objects.equals(userId, receiverId) && userMap.containsKey(receiverId)) {
+                displayUser = userMap.get(receiverId);
+            } else if (!Objects.equals(userId, assignedId) && userMap.containsKey(assignedId)) {
+                displayUser = userMap.get(assignedId);
             } else {
-                displayUser = userMap.get(1L); // always show admin user
+                displayUser = userMap.get(1L); // fallback to admin
             }
 
             conversationData.put("receiver", Map.of(
@@ -294,6 +216,7 @@ public class ChatService {
 
         return result;
     }
+
     @Transactional
     public Message sendMessage(MessageRequest messageRequest, Long userId, String role) {
         Conversation conversation = conversationRepository.findById(messageRequest.getConversationId())
@@ -371,7 +294,12 @@ public class ChatService {
                 .orElse(null);
     }
     public boolean isParticipant(Long conversationId, Long userId) {
-        return conversationRepository.existsByInitiatorIdOrReceiverIdAndId(userId,userId,conversationId);
+        Optional<Conversation> conversationOpt = conversationRepository.findById(conversationId);
+        return conversationOpt.map(conversation ->
+                conversation.getInitiatorId().equals(userId) ||
+                        conversation.getReceiverId().equals(userId) ||
+                        (conversation.getAssignedId() != null && conversation.getAssignedId().equals(userId))
+        ).orElse(false);
     }
 
     public List<Message> getMessagesAfterTimestamp(Long conversationId, ZonedDateTime timestamp) {
@@ -382,6 +310,13 @@ public class ChatService {
             // Fetch only messages sent after the given timestamp
             return messageRepository.findByConversationIdAndTimestampAfterOrderByTimestampAsc(conversationId, timestamp);
         }
+    }
+    public Optional<Conversation> getConversationById(Long id) {
+        return conversationRepository.findById(id);
+    }
+
+    public void saveConversation(Conversation conversation) {
+        conversationRepository.save(conversation);
     }
 
 }
