@@ -164,10 +164,9 @@ public class ChatService {
         return response;
     }
     private Conversation createNewConversation(ChatRequest request, Long initiatorId, Long receiverId) {
-        // ⬇️ Create new if not found
         Conversation conversation = new Conversation();
         conversation.setInitiatorId(initiatorId);
-        conversation.setReceiverId(receiverId);
+        conversation.setReceiverId(1L); // ✅ Always admin
         conversation.setPropertyOwnerId(request.getPropertyOwnerId());
         conversation.setType(Conversation.ConversationType.valueOf(request.getType()));
         conversation.setStatus(Conversation.ConversationStatus.OPEN);
@@ -178,6 +177,7 @@ public class ChatService {
 
         return conversationRepository.save(conversation);
     }
+
 
 
 //
@@ -294,102 +294,44 @@ public class ChatService {
 
         return result;
     }
+    @Transactional
+    public Message sendMessage(MessageRequest messageRequest, Long userId, String role) {
+        Conversation conversation = conversationRepository.findById(messageRequest.getConversationId())
+                .orElseThrow(() -> new RuntimeException("Conversation not found"));
 
-//
-//    public List<Map<String, Object>> getAllConversationsForUser(Long userId) {
-//        List<Conversation> conversations = conversationRepository.findByInitiatorIdOrReceiverId(userId, userId);
-//
-//        if (conversations.isEmpty()) return Collections.emptyList();
-//
-//        Set<Long> userIds = conversations.stream()
-//                .flatMap(c -> Stream.of(c.getInitiatorId(), c.getReceiverId()))
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toSet());
-//
-//        // ✅ Collect propertyOwnerIds if property is involved
-//        Set<Long> propertyOwnerIds = conversations.stream()
-//                .map(Conversation::getPropertyId)
-//                .filter(Objects::nonNull)
-//                .map(pid -> {
-//                    Property p = propertyRepository.findById(pid).orElse(null);
-//                    return p != null ? p.getUser().getId() : null;
-//                })
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toSet());
-//
-//        userIds.addAll(propertyOwnerIds); // merge all relevant userIds
-//
-//        List<User> users = userRepo.findAllById(userIds);
-//        Map<Long, User> userMap = users.stream()
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toMap(User::getId, u -> u));
-//
-//        List<Map<String, Object>> result = new ArrayList<>();
-//        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
-//
-//        for (Conversation conv : conversations) {
-//            if (conv == null) continue;
-//
-//            Long senderId = conv.getInitiatorId();
-//            Long receiverId = conv.getReceiverId();
-//            Long propertyId = conv.getPropertyId();
-//
-//            if (senderId == null || receiverId == null) {
-//                System.out.println("Null sender or receiver ID for conversation ID: " + conv.getId());
-//                continue;
-//            }
-//
-//            User sender = userMap.get(senderId);
-//            User receiver = userMap.get(receiverId);
-//
-//            if (sender == null || receiver == null) {
-//                System.out.println("Sender or receiver not found in userMap for conversation ID: " + conv.getId());
-//                continue;
-//            }
-//
-//
-//            Message lastMessage = messageRepository
-//                    .findTopByConversationIdOrderByTimestampDesc(conv.getId());
-//
-//            Map<String, Object> conversationData = new HashMap<>();
-//            conversationData.put("conversationId", conv.getId());
-//            conversationData.put("propertyId", propertyId != null ? propertyId : -1);
-//            conversationData.put("status", conv.getStatus() != null ? conv.getStatus() : "unknown");
-//            conversationData.put("type", conv.getType() != null ? conv.getType() : "unknown");
-//
-//            conversationData.put("receiver", Map.of(
-//                    "id", receiver.getId(),
-//                    "name", receiver.getFullName() != null ? receiver.getFullName() : "Unknown",
-//                    "profileImage", receiver.getProfilePicture() != null ? receiver.getProfilePicture() : ""
-//            ));
-//
-//            if (lastMessage != null) {
-//                conversationData.put("lastMessage", lastMessage.getMessage() != null ? lastMessage.getMessage() : "");
-//                conversationData.put("lastMessageTime", lastMessage.getTimestamp() != null
-//                        ? lastMessage.getTimestamp().format(formatter)
-//                        : null);
-//            } else {
-//                conversationData.put("lastMessage", "No messages yet.");
-//                conversationData.put("lastMessageTime", null);
-//            }
-//
-//            result.add(conversationData);
-//        }
-//
-//        return result;
-//    }
-//
+        Message message = new Message();
+        message.setConversation(conversation);
+        message.setSenderId(userId);
+        message.setMessage(messageRequest.getMessage());
 
+        if (role.equals("ROLE_ADMIN")) {
+            updateReceiverIdIfAdminJoins(userId, conversation);
+        } else if (role.equals("ROLE_AGENT")) {
+            keepReceiverAsAdmin(conversation); // Always admin
+        }
 
-//    public Long getReceiverId(Long conversationId, Long senderId) {
-//        List<Message> messages = messageRepository.findByConversationId(conversationId);
-//        Set<Long> participants = messages.stream().map(Message::getSenderId).collect(Collectors.toSet());
-//
-//        return participants.stream()
-//                .filter(id -> !id.equals(senderId))
-//                .findFirst()
-//                .orElse(null);
-//    }
+        return messageRepository.save(message);
+    }
+
+    @Transactional
+    public void updateReceiverIdIfAdminJoins(Long adminId, Conversation conversation) {
+        Long initiatorId = conversation.getInitiatorId();
+        Long currentReceiverId = conversation.getReceiverId();
+
+        // Only update if admin is not initiator AND not already receiver
+        if (!adminId.equals(initiatorId) && !adminId.equals(currentReceiverId)) {
+            conversation.setReceiverId(adminId);
+            conversationRepository.save(conversation);
+        }
+    }
+
+    @Transactional
+    public void keepReceiverAsAdmin(Conversation conversation) {
+        if (conversation.getReceiverId() != 1L) {
+            conversation.setReceiverId(1L); // Always admin
+            conversationRepository.save(conversation);
+        }
+    }
 
 
     private boolean isAgent(Long userId) {
@@ -416,36 +358,6 @@ public class ChatService {
         }
     }
     @Transactional
-    public Message sendMessage(MessageRequest messageRequest,Long userId,String role) {
-        // Find the conversation by ID
-        Conversation conversation = conversationRepository.findById(messageRequest.getConversationId())
-                .orElseThrow(() -> new RuntimeException("Conversation not found"));
-
-        // Create a new message entity
-        Message message = new Message();
-        message.setConversation(conversation);
-        message.setSenderId(userId);
-        message.setMessage(messageRequest.getMessage());
-        if(role.equals("ROLE_ADMIN")) {
-            updateReceiverIdIfAdminJoins(userId, messageRequest.getConversationId());
-        }
-        // Save the message to the database
-        return messageRepository.save(message);
-    }
-    // Later, update receiverId if another admin joins
-    @Transactional
-    public void updateReceiverIdIfAdminJoins(Long newAdminId, Long conversationId) {
-        // Find the conversation by ID
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation not found, we could not update it"));
-
-        // Update the receiver ID
-        conversation.setReceiverId(newAdminId);
-
-        // Save the updated conversation
-        conversationRepository.save(conversation);
-    }
-
     public List<Message> getRawMessages(Long conversationId) {
         return messageRepository.findByConversationId(conversationId);
     }
