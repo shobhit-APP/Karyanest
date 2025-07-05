@@ -531,6 +531,7 @@ public class Auth implements AuthService, AuthHelper {
         System.out.println(user.getUserId());
         updateUserInternalDTO.setUserId(user.getUserId());
         updateUserInternalDTO.setStatus("Active");
+        updateUserInternalDTO.setLastLogin(ZonedDateTime.now(ZoneId.of("Asia/Kolkata")));
         userHandleService.setUserDetailsInternally(updateUserInternalDTO);
         // Generate and return response
         AuthResponseDTO authResponse = getJwtResponse(jwtToken, refreshToken, UserRole);
