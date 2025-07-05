@@ -10,6 +10,8 @@ import com.backend.karyanestApplication.Repositry.MessageRepository;
 import com.backend.karyanestApplication.Repositry.PropertyRepository;
 import com.backend.karyanestApplication.Repositry.UserRepo;
 import com.example.rbac.Service.RolesService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,27 +42,47 @@ public class ChatService {
 
     @Autowired
     private MessageRepository messageRepository;
-
+    private final Logger logger = LoggerFactory.getLogger(ChatService.class);
     public boolean isChatAllowed(Long Id, String senderRole) {
         // Block User ↔ Agent communication for property-related chat
         return !senderRole.equals("ROLE_USER") || !isAgent(Id);
     }
-    public boolean canSendMessage(Long senderId, Long conversationId, String senderRole) {
+    public Map<String, Object> canSendMessage(Long senderId, Long conversationId, String senderRole) {
+        Map<String, Object> result = new HashMap<>();
         Optional<Conversation> conversation = conversationRepository.findById(conversationId);
 
-        if (conversation.isPresent()) {
-            Conversation chat = conversation.get();
-
-            // Allow if sender is the initiator or receiver
-            boolean isParticipant = chat.getInitiatorId().equals(senderId) || chat.getReceiverId().equals(senderId);
-
-            // Allow if sender is an admin
-            boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(senderRole);
-
-            // Message can be sent if the conversation is open and the sender is a participant or an admin
-            return (isParticipant || isAdmin) && chat.getStatus() == Conversation.ConversationStatus.OPEN;
+        if (!conversation.isPresent()) {
+            logger.warn("Conversation not found for conversationId: {}", conversationId);
+            result.put("canSend", false);
+            result.put("reason", "Conversation not found");
+            return result;
         }
-        return false;
+
+        Conversation chat = conversation.get();
+
+        // Check if chat is closed
+        if (Conversation.ConversationStatus.CLOSED.equals(chat.getStatus())) {
+            logger.info("Chat closed for conversationId: {}, senderId: {}", conversationId, senderId);
+            result.put("canSend", false);
+            result.put("reason", "Chat is closed");
+            return result;
+        }
+
+        // Check if sender is participant or admin
+        boolean isParticipant = (chat.getInitiatorId() != null && chat.getInitiatorId().equals(senderId)) ||
+                (chat.getReceiverId() != null && chat.getReceiverId().equals(senderId));
+        boolean isAdmin = "ROLE_ADMIN".equalsIgnoreCase(senderRole);
+
+        if (!isParticipant && !isAdmin) {
+            logger.warn("Unauthorized attempt to send message, senderId: {}, conversationId: {}", senderId, conversationId);
+            result.put("canSend", false);
+            result.put("reason", "You are not authorized to send this message");
+            return result;
+        }
+
+        result.put("canSend", true);
+        result.put("reason", null);
+        return result;
     }
     //   @Transactional
 //    public Conversation createChat(ChatRequest request, Long InitiatorId, Long ReceiverId) {

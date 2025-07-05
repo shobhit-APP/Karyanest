@@ -8,6 +8,8 @@ import com.backend.karyanestApplication.Service.PropertyService;
 import com.backend.karyanestApplication.Service.UserService;
 import com.example.Authentication.Component.UserContext;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +40,7 @@ public class ChatController {
         this.userService = userService;
         this.propertyService = propertyService;
     }
-
+    private final Logger logger = LoggerFactory.getLogger(ChatController.class);
     // Start a chat - Only Admin or User with chat_start authority
     @PostMapping("/start")
     @PreAuthorize("hasAnyRole('ROLE_ADMIN', 'ROLE_USER') or hasAuthority('chat_start')")
@@ -199,19 +201,28 @@ public class ChatController {
         Long userId = getUserId(request);
         String role = getUserRole(request);
 
-        if (!chatService.canSendMessage(userId, messageRequest.getConversationId(), role)) {
+        Map<String, Object> sendResult = chatService.canSendMessage(userId, messageRequest.getConversationId(), role);
+        if (!(Boolean) sendResult.get("canSend")) {
+            String reason = (String) sendResult.get("reason");
+            logger.warn("Message send failed for userId: {}, conversationId: {}, reason: {}", userId, messageRequest.getConversationId(), reason);
+            if ("Chat is closed".equals(reason)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Chat is closed"));
+            }
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "You are not authorized to send this message"));
+                    .body(Map.of("error", reason));
         }
 
         Message message = chatService.sendMessage(messageRequest, userId, role);
         if (message == null) {
+            logger.error("Internal error sending message for userId: {}, conversationId: {}", userId, messageRequest.getConversationId());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to send message"));
         }
 
         Long conversationId = message.getConversation() != null ? message.getConversation().getId() : null;
         if (conversationId == null) {
+            logger.error("Missing conversation ID for message sent by userId: {}", userId);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Conversation ID is missing"));
         }
@@ -219,7 +230,6 @@ public class ChatController {
         // ⏰ Check timestamp in request (optional)
         List<Message> messages;
         if (messageRequest.getTimestamp() != null) {
-
             messages = chatService.getMessagesAfterTimestamp(conversationId, messageRequest.getTimestamp());
         } else {
             messages = chatService.getRawMessages(conversationId);
@@ -227,7 +237,6 @@ public class ChatController {
 
         // 🔁 Prepare response
         List<Map<String, Object>> chatMessages = new ArrayList<>();
-
         for (Message msg : messages) {
             Map<String, Object> map = new HashMap<>();
             Long senderId = msg.getSenderId();
@@ -243,7 +252,6 @@ public class ChatController {
 
         return ResponseEntity.ok(chatMessages);
     }
-
 
 
 
