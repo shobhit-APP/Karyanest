@@ -19,8 +19,6 @@ public class Conversation {
 
     @Column(name = "receiver_id", nullable = false)
     private Long receiverId; // Only store User ID, no relation
-    @Column(name = "admin_id")
-    private Long adminId;
     @Column(name = "property_id")
     private Long propertyId; // Store Property ID (nullable for non-property chats)
     @Column(name="propertyOwnerId")
