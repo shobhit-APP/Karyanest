@@ -199,152 +199,79 @@ public class ChatService {
 //        return ResponseEntity.ok(formattedMessages);
 //    }
 
-//    public List<Map<String, Object>> getAllConversationsForUser(Long userId) {
-//        List<Conversation> conversations = conversationRepository.findByInitiatorIdOrReceiverId(userId, userId);
-//
-//        if (conversations.isEmpty()) return Collections.emptyList();
-//
-//        // Collect all user IDs involved in the conversations
-//        Set<Long> userIds = conversations.stream()
-//                .flatMap(c -> Stream.of(c.getInitiatorId(), c.getReceiverId()))
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toSet());
-//
-//        userIds.add(1L); // ensure user with ID=1 (admin) is included
-//
-//        List<User> users = userRepo.findAllById(userIds);
-//        Map<Long, User> userMap = users.stream()
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toMap(User::getId, u -> u));
-//
-//        List<Map<String, Object>> result = new ArrayList<>();
-//        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
-//
-//        for (Conversation conv : conversations) {
-//            if (conv == null) continue;
-//
-//            Long initiatorId = conv.getInitiatorId();
-//            Long receiverId = conv.getReceiverId();
-//
-//            if (initiatorId == null || receiverId == null) continue;
-//
-//            // Filter logic
-//            if (userId != 1 && !Objects.equals(initiatorId, userId)) continue;
-//
-//            User initiator = userMap.get(initiatorId);
-//            User receiver = userMap.get(receiverId);
-//            if (initiator == null || receiver == null) continue;
-//
-//            Message lastMessage = messageRepository.findTopByConversationIdOrderByTimestampDesc(conv.getId());
-//
-//            Map<String, Object> conversationData = new HashMap<>();
-//            conversationData.put("conversationId", conv.getId());
-//            conversationData.put("propertyId", conv.getPropertyId() != null ? conv.getPropertyId() : -1);
-//            conversationData.put("status", conv.getStatus() != null ? conv.getStatus() : "unknown");
-//            conversationData.put("type", conv.getType() != null ? conv.getType() : "unknown");
-//
-//            // ✅ Receiver logic based on userId
-//            User displayUser;
-//            if (userId == 1L) {
-//                displayUser = initiator;
-//            } else {
-//                displayUser = userMap.get(1L); // always show admin user
-//            }
-//
-//            conversationData.put("receiver", Map.of(
-//                    "id", displayUser.getId(),
-//                    "name", displayUser.getFullName() != null ? displayUser.getFullName() : "Unknown",
-//                    "profileImage", displayUser.getProfilePicture() != null ? displayUser.getProfilePicture() : ""
-//            ));
-//
-//            if (lastMessage != null) {
-//                conversationData.put("lastMessage", lastMessage.getMessage() != null ? lastMessage.getMessage() : "");
-//                conversationData.put("lastMessageTime", lastMessage.getTimestamp() != null
-//                        ? lastMessage.getTimestamp().format(formatter)
-//                        : null);
-//            } else {
-//                conversationData.put("lastMessage", "No messages yet.");
-//                conversationData.put("lastMessageTime", null);
-//            }
-//
-//            result.add(conversationData);
-//        }
-//
-//        return result;
-//    }
-public List<Map<String, Object>> getAllConversationsForUser(Long userId) {
-    List<Conversation> conversations = conversationRepository.findByInitiatorIdOrReceiverId(userId, userId);
+    public List<Map<String, Object>> getAllConversationsForUser(Long userId) {
+        List<Conversation> conversations = conversationRepository.findByInitiatorIdOrReceiverId(userId, userId);
 
-    if (conversations.isEmpty()) return Collections.emptyList();
+        if (conversations.isEmpty()) return Collections.emptyList();
 
-    // Collect all user IDs involved in the conversations
-    Set<Long> userIds = conversations.stream()
-            .flatMap(c -> Stream.of(c.getInitiatorId(), c.getReceiverId()))
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
+        // Collect all user IDs involved in the conversations
+        Set<Long> userIds = conversations.stream()
+                .flatMap(c -> Stream.of(c.getInitiatorId(), c.getReceiverId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
 
-    userIds.add(1L); // Ensure user with ID=1 (admin) is included
+        userIds.add(1L); // ensure user with ID=1 (admin) is included
 
-    List<User> users = userRepo.findAllById(userIds);
-    Map<Long, User> userMap = users.stream()
-            .filter(Objects::nonNull)
-            .collect(Collectors.toMap(User::getId, u -> u));
+        List<User> users = userRepo.findAllById(userIds);
+        Map<Long, User> userMap = users.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(User::getId, u -> u));
 
-    List<Map<String, Object>> result = new ArrayList<>();
-    DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+        List<Map<String, Object>> result = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
 
-    for (Conversation conv : conversations) {
-        if (conv == null) continue;
+        for (Conversation conv : conversations) {
+            if (conv == null) continue;
 
-        Long initiatorId = conv.getInitiatorId();
-        Long receiverId = conv.getReceiverId();
+            Long initiatorId = conv.getInitiatorId();
+            Long receiverId = conv.getReceiverId();
 
-        if (initiatorId == null || receiverId == null) continue;
+            if (initiatorId == null || receiverId == null) continue;
 
-        // Show chats only if userId is 1 (admin) or matches initiatorId or receiverId
-        if (!Objects.equals(userId, 1L) && !Objects.equals(initiatorId, userId) && !Objects.equals(receiverId, userId)) {
-            continue; // Skip if user is neither admin nor part of the conversation
+            // Filter logic
+            if (userId != 1 && !Objects.equals(initiatorId, userId)) continue;
+
+            User initiator = userMap.get(initiatorId);
+            User receiver = userMap.get(receiverId);
+            if (initiator == null || receiver == null) continue;
+
+            Message lastMessage = messageRepository.findTopByConversationIdOrderByTimestampDesc(conv.getId());
+
+            Map<String, Object> conversationData = new HashMap<>();
+            conversationData.put("conversationId", conv.getId());
+            conversationData.put("propertyId", conv.getPropertyId() != null ? conv.getPropertyId() : -1);
+            conversationData.put("status", conv.getStatus() != null ? conv.getStatus() : "unknown");
+            conversationData.put("type", conv.getType() != null ? conv.getType() : "unknown");
+
+            // ✅ Receiver logic based on userId
+            User displayUser;
+            if (userId == 1L) {
+                displayUser = initiator;
+            } else {
+                displayUser = userMap.get(1L); // always show admin user
+            }
+
+            conversationData.put("receiver", Map.of(
+                    "id", displayUser.getId(),
+                    "name", displayUser.getFullName() != null ? displayUser.getFullName() : "Unknown",
+                    "profileImage", displayUser.getProfilePicture() != null ? displayUser.getProfilePicture() : ""
+            ));
+
+            if (lastMessage != null) {
+                conversationData.put("lastMessage", lastMessage.getMessage() != null ? lastMessage.getMessage() : "");
+                conversationData.put("lastMessageTime", lastMessage.getTimestamp() != null
+                        ? lastMessage.getTimestamp().format(formatter)
+                        : null);
+            } else {
+                conversationData.put("lastMessage", "No messages yet.");
+                conversationData.put("lastMessageTime", null);
+            }
+
+            result.add(conversationData);
         }
 
-        User initiator = userMap.get(initiatorId);
-        User receiver = userMap.get(receiverId);
-        if (initiator == null || receiver == null) continue;
-
-        Message lastMessage = messageRepository.findTopByConversationIdOrderByTimestampDesc(conv.getId());
-
-        Map<String, Object> conversationData = new HashMap<>();
-        conversationData.put("conversationId", conv.getId());
-        conversationData.put("propertyId", conv.getPropertyId() != null ? conv.getPropertyId() : -1);
-        conversationData.put("status", conv.getStatus() != null ? conv.getStatus() : "unknown");
-        conversationData.put("type", conv.getType() != null ? conv.getType() : "unknown");
-
-        // Receiver logic: Show the other party (not the current user)
-        User displayUser = Objects.equals(initiatorId, userId) ? receiver : initiator;
-        if (userId == 1L) {
-            displayUser = initiator; // Admin sees the initiator as the display user
-        }
-
-        conversationData.put("receiver", Map.of(
-                "id", displayUser.getId(),
-                "name", displayUser.getFullName() != null ? displayUser.getFullName() : "Unknown",
-                "profileImage", displayUser.getProfilePicture() != null ? displayUser.getProfilePicture() : ""
-        ));
-
-        if (lastMessage != null) {
-            conversationData.put("lastMessage", lastMessage.getMessage() != null ? lastMessage.getMessage() : "");
-            conversationData.put("lastMessageTime", lastMessage.getTimestamp() != null
-                    ? lastMessage.getTimestamp().format(formatter)
-                    : null);
-        } else {
-            conversationData.put("lastMessage", "No messages yet.");
-            conversationData.put("lastMessageTime", null);
-        }
-
-        result.add(conversationData);
+        return result;
     }
-
-    return result;
-}
 
 //
 //    public List<Map<String, Object>> getAllConversationsForUser(Long userId) {
